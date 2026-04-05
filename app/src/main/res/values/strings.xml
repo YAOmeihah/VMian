@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">VMian</string>
+    <string name="accessibility_service_description">V免签保活服务：轻量级保活服务，提高应用后台运行稳定性。该服务不读取或处理用户数据，仅用于保持应用运行状态。</string>
+</resources>
