@@ -37,15 +37,15 @@ fun ManualConfigDialog(
                     value = host,
                     onValueChange = { host = it },
                     label = { Text("服务器地址") },
-                    placeholder = { Text("例如: http://example.com") },
+                    placeholder = { Text("例如: vpay.test") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
                     value = key,
                     onValueChange = { key = it },
-                    label = { Text("通讯密钥") },
-                    placeholder = { Text("请输入密钥") },
+                    label = { Text("监控密钥") },
+                    placeholder = { Text("请输入 monitorKey") },
                     modifier = Modifier.fillMaxWidth()
                 )
 

@@ -17,21 +17,22 @@ class ConfigRepositoryImpl(
 ) : ConfigRepository {
 
     private val hostKey = stringPreferencesKey("host")
-    private val keyKey = stringPreferencesKey("key")
+    private val monitorKeyKey = stringPreferencesKey("monitor_key")
+    private val legacyKeyKey = stringPreferencesKey("key")
 
     override suspend fun saveConfig(config: PaymentConfig) {
         dataStore.edit { preferences ->
             preferences[hostKey] = config.host
-            preferences[keyKey] = config.key
+            preferences[monitorKeyKey] = config.monitorKey
         }
     }
 
     override suspend fun getConfig(): PaymentConfig? {
         return dataStore.data.map { preferences ->
             val host = preferences[hostKey] ?: ""
-            val key = preferences[keyKey] ?: ""
-            if (host.isNotEmpty() && key.isNotEmpty()) {
-                PaymentConfig(host, key, true)
+            val monitorKey = preferences[monitorKeyKey] ?: preferences[legacyKeyKey] ?: ""
+            if (host.isNotEmpty() && monitorKey.isNotEmpty()) {
+                PaymentConfig(host, monitorKey, true)
             } else null
         }.first()
     }

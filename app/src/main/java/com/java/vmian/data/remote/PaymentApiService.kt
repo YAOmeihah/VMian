@@ -1,8 +1,11 @@
 package com.java.vmian.data.remote
 
 import com.java.vmian.data.remote.dto.VmqApiResponse
+import com.java.vmian.data.remote.dto.PushPaymentRequestDto
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.Query
 import retrofit2.http.Url
 
@@ -24,12 +27,9 @@ interface PaymentApiService {
     /**
      * 推送支付数据
      */
-    @GET
+    @POST
     suspend fun pushPayment(
         @Url url: String,
-        @Query("t") timestamp: Long,
-        @Query("type") type: Int,
-        @Query("price") price: Double,
-        @Query("sign") sign: String
+        @Body body: PushPaymentRequestDto
     ): Response<VmqApiResponse<Any?>>
 }

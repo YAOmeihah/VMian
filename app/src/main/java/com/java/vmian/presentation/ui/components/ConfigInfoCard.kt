@@ -24,11 +24,11 @@ fun ConfigInfoCard(config: PaymentConfig?) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "通知地址: ${config?.host ?: "请扫码配置"}",
+                text = "监控地址: ${config?.host ?: "请扫码配置"}",
                 style = MaterialTheme.typography.bodyMedium
             )
             Text(
-                text = "通讯密钥: ${if (config?.key?.isNotEmpty() == true) "已配置" else "请扫码配置"}",
+                text = "监控密钥: ${if (config?.monitorKey?.isNotEmpty() == true) "已配置" else "请扫码配置"}",
                 style = MaterialTheme.typography.bodyMedium
             )
         }

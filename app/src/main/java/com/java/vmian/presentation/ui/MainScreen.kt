@@ -239,8 +239,8 @@ fun MainScreen(
     // 手动配置对话框
     if (showManualConfig) {
         ManualConfigDialog(
-            onConfigSaved = { host, key ->
-                viewModel.saveConfig(host, key)
+            onConfigSaved = { host, monitorKey ->
+                viewModel.saveConfig(host, monitorKey)
                 showManualConfig = false
             },
             onDismiss = { showManualConfig = false }
@@ -295,5 +295,4 @@ fun MainScreen(
         }
     }
 }
-
 

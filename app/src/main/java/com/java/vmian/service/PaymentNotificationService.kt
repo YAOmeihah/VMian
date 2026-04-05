@@ -26,6 +26,7 @@ import com.java.vmian.domain.model.PaymentNotification
 import com.java.vmian.domain.usecase.PaymentUseCase
 import com.java.vmian.util.HeartbeatScheduler
 import com.java.vmian.util.LogManager
+import com.java.vmian.util.PaymentEventIdFactory
 import com.java.vmian.util.PushLogManager
 import com.java.vmian.util.WakeLockManager
 import kotlinx.coroutines.*
@@ -113,7 +114,14 @@ class PaymentNotificationService : NotificationListenerService() {
                     timestamp = System.currentTimeMillis(),
                     packageName = packageName,
                     title = title,
-                    content = content
+                    content = content,
+                    eventId = PaymentEventIdFactory.create(
+                        packageName = packageName,
+                        notificationKey = sbn.key.orEmpty(),
+                        postTime = sbn.postTime,
+                        title = title,
+                        content = content
+                    )
                 )
 
                 Log.d(TAG, "识别到${paymentType.name}收款: $amount 元")

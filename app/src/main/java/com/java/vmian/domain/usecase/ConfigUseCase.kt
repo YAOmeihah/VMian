@@ -13,9 +13,10 @@ class ConfigUseCase(
     /**
      * 保存配置
      */
-    suspend fun saveConfig(host: String, key: String): Result<Unit> {
+    suspend fun saveConfig(host: String, monitorKey: String): Result<Unit> {
         return try {
-            val config = PaymentConfig(host, key, true)
+            require(monitorKey.isNotBlank()) { "监控密钥不能为空" }
+            val config = PaymentConfig(host.trim(), monitorKey.trim(), true)
             configRepository.saveConfig(config)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -32,12 +33,16 @@ class ConfigUseCase(
 
     /**
      * 解析二维码配置
-     * 格式: host/key
+     * 格式: host/monitorKey
      */
     fun parseConfigFromQrCode(qrContent: String): Result<Pair<String, String>> {
-        val parts = qrContent.split("/")
-        return if (parts.size == 2) {
-            Result.success(Pair(parts[0], parts[1]))
+        val content = qrContent.trim()
+        val separatorIndex = content.lastIndexOf('/')
+
+        return if (separatorIndex in 1 until content.lastIndex) {
+            val host = content.substring(0, separatorIndex)
+            val monitorKey = content.substring(separatorIndex + 1)
+            Result.success(Pair(host, monitorKey))
         } else {
             Result.failure(IllegalArgumentException("二维码格式错误"))
         }

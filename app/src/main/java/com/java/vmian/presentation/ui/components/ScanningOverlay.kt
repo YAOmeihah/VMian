@@ -75,7 +75,7 @@ fun ScanningOverlay(
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = "支持格式: host/key",
+                text = "支持格式: host/monitorKey",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center

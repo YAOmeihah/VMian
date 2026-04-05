@@ -1,6 +1,7 @@
 package com.java.vmian.domain.repository
 
 import com.java.vmian.domain.model.ApiResponse
+import com.java.vmian.domain.model.PaymentPushPayload
 
 /**
  * 支付相关Repository接口
@@ -14,5 +15,5 @@ interface PaymentRepository {
     /**
      * 推送支付数据
      */
-    suspend fun pushPayment(type: Int, price: Double, timestamp: Long, sign: String): ApiResponse<String>
+    suspend fun pushPayment(payload: PaymentPushPayload): ApiResponse<String>
 }

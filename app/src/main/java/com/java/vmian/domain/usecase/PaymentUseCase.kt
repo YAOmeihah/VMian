@@ -2,17 +2,22 @@ package com.java.vmian.domain.usecase
 
 import com.java.vmian.domain.model.ApiResponse
 import com.java.vmian.domain.model.PaymentNotification
+import com.java.vmian.domain.model.PaymentPushPayload
 import com.java.vmian.domain.model.PaymentType
 import com.java.vmian.domain.repository.ConfigRepository
 import com.java.vmian.domain.repository.PaymentRepository
 import com.java.vmian.util.CryptoUtils
+import com.java.vmian.util.MoneyUtils
+import java.util.UUID
 
 /**
  * 支付相关业务用例
  */
 class PaymentUseCase(
     private val paymentRepository: PaymentRepository,
-    private val configRepository: ConfigRepository
+    private val configRepository: ConfigRepository,
+    private val currentTimeMillis: () -> Long = System::currentTimeMillis,
+    private val nonceFactory: () -> String = { UUID.randomUUID().toString() }
 ) {
     
     /**
@@ -20,8 +25,8 @@ class PaymentUseCase(
      */
     suspend fun sendHeartbeat(): ApiResponse<String> {
         val config = configRepository.getConfig() ?: return ApiResponse.Error("配置未设置")
-        val timestamp = System.currentTimeMillis()
-        val sign = CryptoUtils.generateMd5("$timestamp${config.key}")
+        val timestamp = currentTimeMillis()
+        val sign = CryptoUtils.generateMd5("$timestamp${config.monitorKey}")
         return paymentRepository.sendHeartbeat(timestamp, sign)
     }
 
@@ -30,13 +35,22 @@ class PaymentUseCase(
      */
     suspend fun pushPayment(notification: PaymentNotification): ApiResponse<String> {
         val config = configRepository.getConfig() ?: return ApiResponse.Error("配置未设置")
-        val timestamp = System.currentTimeMillis()
-        val sign = CryptoUtils.generateMd5("${notification.type.value}${notification.amount}$timestamp${config.key}")
+        val timestamp = currentTimeMillis()
+        val nonce = nonceFactory()
+        val amountCents = MoneyUtils.toAmountCents(notification.amount)
+        val signingText =
+            "${notification.type.value}|$amountCents|$timestamp|$nonce|${notification.eventId}"
+        val sign = CryptoUtils.generateHmacSha256(signingText, config.monitorKey)
+
         return paymentRepository.pushPayment(
-            notification.type.value,
-            notification.amount,
-            timestamp,
-            sign
+            PaymentPushPayload(
+                type = notification.type.value,
+                amountCents = amountCents,
+                timestamp = timestamp,
+                nonce = nonce,
+                eventId = notification.eventId,
+                sign = sign
+            )
         )
     }
 

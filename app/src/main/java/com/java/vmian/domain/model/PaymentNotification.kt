@@ -15,7 +15,8 @@ data class PaymentNotification(
     val timestamp: Long,
     val packageName: String,
     val title: String,
-    val content: String
+    val content: String,
+    val eventId: String
 )
 
 /**
