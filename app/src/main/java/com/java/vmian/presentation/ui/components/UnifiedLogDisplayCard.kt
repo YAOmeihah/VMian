@@ -1,147 +1,196 @@
 package com.java.vmian.presentation.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.java.vmian.R
 import com.java.vmian.domain.model.LogEntry
 import com.java.vmian.domain.model.LogType
 import com.java.vmian.domain.model.PushLogEntry
 import com.java.vmian.domain.model.PushLogType
-import com.java.vmian.ui.theme.SuccessGreen
+import com.java.vmian.presentation.ui.model.LogListBehavior
+import com.java.vmian.presentation.ui.model.LogPanelLayout
 import com.java.vmian.ui.theme.InfoBlue
-import com.java.vmian.ui.theme.WarningOrange
-import java.text.SimpleDateFormat
-import java.util.*
+import com.java.vmian.ui.theme.SuccessGreen
 
 /**
  * 统一日志显示卡片组件 - 支持运行日志和推送日志切换
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun UnifiedLogDisplayCard(
     logs: List<LogEntry>,
     pushLogs: List<PushLogEntry>,
     onClearLogs: () -> Unit,
     onClearPushLogs: () -> Unit,
+    panelHeight: Dp,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0: 运行日志, 1: 推送日志
+    var selectedTab by remember { mutableStateOf(0) }
     val listState = rememberLazyListState()
-    
-    // 自动滚动到最新日志
+    val hasSelectedTabContent = if (selectedTab == 0) logs.isNotEmpty() else pushLogs.isNotEmpty()
+
     LaunchedEffect(logs.size, pushLogs.size, selectedTab) {
-        if ((selectedTab == 0 && logs.isNotEmpty()) || (selectedTab == 1 && pushLogs.isNotEmpty())) {
+        if (LogListBehavior.shouldScrollToLatestOnUpdate(hasSelectedTabContent)) {
             listState.animateScrollToItem(0)
         }
     }
-    
+
     Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .height(panelHeight),
+        shape = RoundedCornerShape(16.dp),
+        colors = AppCardDefaults.colors(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
-        ) {
-            // 标题栏和Tab切换
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        val bodyHeight = LogPanelLayout.resolveBodyHeightDp(panelHeight.value.toInt()).dp
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Tab切换按钮
-                Row {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.logs_title),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (selectedTab == 0) {
+                                stringResource(R.string.log_tab_runtime, logs.size)
+                            } else {
+                                stringResource(R.string.log_tab_push, pushLogs.size)
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            if (selectedTab == 0) {
+                                onClearLogs()
+                            } else {
+                                onClearPushLogs()
+                            }
+                        },
+                        enabled = if (selectedTab == 0) logs.isNotEmpty() else pushLogs.isNotEmpty()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = stringResource(R.string.clear_logs),
+                            tint = if ((selectedTab == 0 && logs.isNotEmpty()) || (selectedTab == 1 && pushLogs.isNotEmpty())) {
+                                MaterialTheme.colorScheme.onSurface
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            }
+                        )
+                    }
+                }
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     FilterChip(
                         onClick = { selectedTab = 0 },
-                        label = { Text("运行日志 (${logs.size}/500)", fontSize = 12.sp) },
-                        selected = selectedTab == 0,
-                        modifier = Modifier.padding(end = 8.dp)
+                        label = { Text(stringResource(R.string.log_tab_runtime, logs.size), fontSize = 12.sp) },
+                        selected = selectedTab == 0
                     )
                     FilterChip(
                         onClick = { selectedTab = 1 },
-                        label = { Text("推送日志 (${pushLogs.size}/500)", fontSize = 12.sp) },
+                        label = { Text(stringResource(R.string.log_tab_push, pushLogs.size), fontSize = 12.sp) },
                         selected = selectedTab == 1
                     )
                 }
-                
-                // 清空按钮
-                IconButton(
-                    onClick = {
-                        if (selectedTab == 0) {
-                            onClearLogs()
-                        } else {
-                            onClearPushLogs()
-                        }
-                    },
-                    enabled = if (selectedTab == 0) logs.isNotEmpty() else pushLogs.isNotEmpty()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "清空日志",
-                        tint = if ((selectedTab == 0 && logs.isNotEmpty()) || (selectedTab == 1 && pushLogs.isNotEmpty())) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        }
-                    )
-                }
             }
-            
+
             HorizontalDivider()
-            
-            // 日志列表
+
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    .height(bodyHeight)
+                    .background(MaterialTheme.colorScheme.surface)
             ) {
                 when (selectedTab) {
                     0 -> {
-                        // 运行日志
                         if (logs.isEmpty()) {
-                            EmptyLogState("暂无运行日志")
+                            EmptyLogState(stringResource(R.string.runtime_log_empty))
                         } else {
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(top = 4.dp, bottom = 8.dp),
+                                contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp),
                                 verticalArrangement = Arrangement.spacedBy(0.dp)
                             ) {
-                                items(logs) { log ->
+                                items(logs, key = { it.id }) { log ->
                                     RunningLogItem(log = log)
                                 }
                             }
                         }
                     }
+
                     1 -> {
-                        // 推送日志
                         if (pushLogs.isEmpty()) {
-                            EmptyLogState("暂无推送日志")
+                            EmptyLogState(stringResource(R.string.push_log_empty))
                         } else {
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(top = 4.dp, bottom = 8.dp),
+                                contentPadding = PaddingValues(top = 6.dp, bottom = 10.dp),
                                 verticalArrangement = Arrangement.spacedBy(0.dp)
                             ) {
-                                items(pushLogs) { log ->
+                                items(pushLogs, key = { it.id }) { log ->
                                     PushLogItem(log = log)
                                 }
                             }
@@ -153,9 +202,6 @@ fun UnifiedLogDisplayCard(
     }
 }
 
-/**
- * 空状态显示
- */
 @Composable
 private fun EmptyLogState(message: String) {
     Box(
@@ -170,58 +216,40 @@ private fun EmptyLogState(message: String) {
     }
 }
 
-/**
- * 运行日志条目组件
- */
 @Composable
 private fun RunningLogItem(
     log: LogEntry,
     modifier: Modifier = Modifier
 ) {
     Text(
-        text = buildString {
-            val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(log.timestamp))
-            append("[$time] [${log.type.prefix}] ${log.message}")
-        },
-        fontSize = 11.sp,
+        text = LogListBehavior.buildRunningLogLine(log),
+        fontSize = 12.sp,
         fontFamily = FontFamily.Monospace,
         color = getLogTypeColor(log.type),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 1.dp),
-        lineHeight = 14.sp
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        lineHeight = 18.sp
     )
 }
 
-/**
- * 推送日志条目组件
- */
 @Composable
 private fun PushLogItem(
     log: PushLogEntry,
     modifier: Modifier = Modifier
 ) {
     Text(
-        text = buildString {
-            val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(log.timestamp))
-            append("[$time] [${log.type.prefix}] ${log.paymentType} ¥${log.amount}")
-            if (log.message.isNotEmpty()) {
-                append(" - ${log.message}")
-            }
-        },
-        fontSize = 11.sp,
+        text = LogListBehavior.buildPushLogLine(log),
+        fontSize = 12.sp,
         fontFamily = FontFamily.Monospace,
         color = getPushLogTypeColor(log.type),
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 1.dp),
-        lineHeight = 14.sp
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        lineHeight = 18.sp
     )
 }
 
-/**
- * 根据运行日志类型获取对应的颜色
- */
 @Composable
 private fun getLogTypeColor(type: LogType): Color {
     return when (type) {
@@ -235,9 +263,6 @@ private fun getLogTypeColor(type: LogType): Color {
     }
 }
 
-/**
- * 根据推送日志类型获取对应的颜色
- */
 @Composable
 private fun getPushLogTypeColor(type: PushLogType): Color {
     return when (type) {

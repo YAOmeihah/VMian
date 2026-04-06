@@ -11,7 +11,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -114,7 +113,7 @@ fun VMianTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
     // 默认启用动态颜色以支持Material You，在不支持的设备上回退到品牌色
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -134,10 +133,6 @@ fun VMianTheme(
 
             // 启用边到边显示
             WindowCompat.setDecorFitsSystemWindows(window, false)
-
-            // 设置透明状态栏和导航栏
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            window.navigationBarColor = android.graphics.Color.TRANSPARENT
 
             // 设置状态栏和导航栏图标颜色
             val insetsController = WindowCompat.getInsetsController(window, view)

@@ -1,27 +1,66 @@
 package com.java.vmian.presentation.ui
 
-import android.widget.Toast
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.java.vmian.R
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.java.vmian.VmqApplication
 import com.java.vmian.presentation.ui.components.ConfigInfoCard
-import com.java.vmian.presentation.ui.components.ImmersiveContent
-import com.java.vmian.presentation.ui.components.UnifiedLogDisplayCard
+import com.java.vmian.presentation.ui.components.MainStatusCard
 import com.java.vmian.presentation.ui.components.ManualConfigDialog
 import com.java.vmian.presentation.ui.components.PermissionCheckDialog
 import com.java.vmian.presentation.ui.components.QrCodeScannerDialog
 import com.java.vmian.presentation.ui.components.SimplePermissionCheckDialog
+import com.java.vmian.presentation.ui.components.UnifiedLogDisplayCard
+import com.java.vmian.presentation.ui.model.LogPanelLayout
+import com.java.vmian.presentation.ui.model.MainScreenStage
+import com.java.vmian.presentation.ui.model.MainScreenUiModel
 import com.java.vmian.presentation.viewmodel.MainViewModel
 import com.java.vmian.presentation.viewmodel.MainViewModelFactory
 import com.java.vmian.util.PermissionCheckManager
@@ -32,7 +71,7 @@ import com.java.vmian.util.PermissionUtils
 /**
  * 主界面
  */
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     onNavigateToPermissions: () -> Unit = {}
@@ -49,38 +88,38 @@ fun MainScreen(
     )
     val uiState by viewModel.uiState.collectAsState()
 
-    // 权限状态
     val cameraPermission = rememberPermissionState(
         android.Manifest.permission.CAMERA
     )
 
     var showQrScanner by remember { mutableStateOf(false) }
     var showManualConfig by remember { mutableStateOf(false) }
+    var showConfigMethodSheet by remember { mutableStateOf(false) }
 
-    // 权限检查状态
     var showPermissionCheckDialog by remember { mutableStateOf(false) }
     var showSimplePermissionDialog by remember { mutableStateOf(false) }
     var missingPermissions by remember { mutableStateOf<List<com.java.vmian.domain.model.PermissionInfo>>(emptyList()) }
     var missingPermissionCount by remember { mutableStateOf(0) }
 
     val permissionCheckManager = remember { PermissionCheckManager(context) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val unresolvedPermissionCount = maxOf(missingPermissions.size, missingPermissionCount)
+    val screenModel = MainScreenUiModel.from(
+        uiState = uiState,
+        missingPermissionCount = unresolvedPermissionCount
+    )
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp
+    val logPanelHeight = LogPanelLayout.resolveCardHeightDp(screenHeightDp).dp
 
-    // 应用启动时的权限检查 - 延迟执行以避免闪屏
     LaunchedEffect(Unit) {
-        // 延迟200ms，确保UI先完成渲染
         kotlinx.coroutines.delay(200)
 
-        // 在后台线程执行权限检查
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            // 执行权限检查
             val result = PermissionCheckUtils.checkPermissions(context)
 
-            // 切换回主线程更新UI
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 when (result) {
-                    is PermissionCheckResult.NoCheckNeeded -> {
-                        // 不需要显示权限检查对话框
-                    }
+                    is PermissionCheckResult.NoCheckNeeded -> Unit
                     is PermissionCheckResult.ShowDialog -> {
                         missingPermissions = result.missingPermissions
                         showPermissionCheckDialog = true
@@ -94,138 +133,141 @@ fun MainScreen(
         }
     }
 
-    // 沉浸式背景容器
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        // 使用Column直接处理系统栏，提供更好的控制
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(
-                    WindowInsets.systemBars.only(WindowInsetsSides.Horizontal)
-                )
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            // 状态栏占位
-            Spacer(
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.systemBars.only(WindowInsetsSides.Top)
-                )
-            )
-
-            // 使用Column来控制间距和布局
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp) // 减少间距从16dp到8dp
-            ) {
-            // 固定位置的标题栏设计
-            Row(
+            LazyColumn(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .navigationBarsPadding(),
+                contentPadding = PaddingValues(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "V免签监控端",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.main_title),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                IconButton(
-                    onClick = onNavigateToPermissions,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "权限设置",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        IconButton(
+                            onClick = onNavigateToPermissions,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = stringResource(R.string.permission_settings),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        MainStatusCard(model = screenModel)
+                    }
+                }
+
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                        ConfigInfoCard(config = uiState.config)
+                    }
+                }
+
+                item {
+                    Button(
+                        onClick = {
+                            when (screenModel.stage) {
+                                MainScreenStage.Setup -> showConfigMethodSheet = true
+                                MainScreenStage.PermissionsRequired -> onNavigateToPermissions()
+                                MainScreenStage.Ready -> viewModel.testHeartbeat()
+                            }
+                        },
+                        enabled = screenModel.stage != MainScreenStage.Ready || !uiState.isLoading,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        if (screenModel.stage == MainScreenStage.Ready && uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text(screenModel.primaryActionLabel)
+                        }
+                    }
+                }
+
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { PermissionUtils.sendTestNotification(context) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.test_listener))
+                        }
+
+                        OutlinedButton(
+                            onClick = onNavigateToPermissions,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stringResource(R.string.permission_settings))
+                        }
+                    }
+                }
+
+                if (uiState.isConfigured) {
+                    item {
+                        TextButton(
+                            onClick = { showConfigMethodSheet = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
+                        ) {
+                            Text(stringResource(R.string.edit_config))
+                        }
+                    }
+                }
+
+                item {
+                    UnifiedLogDisplayCard(
+                        logs = uiState.logs,
+                        pushLogs = uiState.pushLogs,
+                        onClearLogs = { viewModel.clearLogs() },
+                        onClearPushLogs = { viewModel.clearPushLogs() },
+                        panelHeight = logPanelHeight,
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .navigationBarsPadding()
                     )
                 }
-            }
 
-            // 配置信息显示
-            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                ConfigInfoCard(config = uiState.config)
-            }
-
-        // 操作按钮
-        Button(
-            onClick = {
-                if (cameraPermission.status.isGranted) {
-                    showQrScanner = true
-                } else {
-                    cameraPermission.launchPermissionRequest()
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            Text("扫码配置")
-        }
-
-        Button(
-            onClick = { showManualConfig = true },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            Text("手动配置")
-        }
-
-        Button(
-            onClick = { viewModel.testHeartbeat() },
-            enabled = uiState.isConfigured && !uiState.isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            } else {
-                Text("检测心跳")
-            }
-        }
-
-        Button(
-            onClick = { PermissionUtils.sendTestNotification(context) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            Text("检测监听")
-        }
-
-            // 统一日志显示区域
-            UnifiedLogDisplayCard(
-                logs = uiState.logs,
-                pushLogs = uiState.pushLogs,
-                onClearLogs = { viewModel.clearLogs() },
-                onClearPushLogs = { viewModel.clearPushLogs() },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp)
-                    .windowInsetsPadding(
-                        WindowInsets.systemBars.only(WindowInsetsSides.Bottom)
-                    )
-                    .padding(bottom = 8.dp) // 额外的视觉间距
-            )
             }
         }
     }
 
-    // 二维码扫描器
     if (showQrScanner) {
         QrCodeScannerDialog(
             onQrCodeScanned = { qrContent ->
@@ -236,7 +278,6 @@ fun MainScreen(
         )
     }
 
-    // 手动配置对话框
     if (showManualConfig) {
         ManualConfigDialog(
             onConfigSaved = { host, monitorKey ->
@@ -247,7 +288,52 @@ fun MainScreen(
         )
     }
 
-    // 权限检查对话框
+    if (showConfigMethodSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showConfigMethodSheet = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.config_method_title),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = stringResource(R.string.config_method_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick = {
+                        showConfigMethodSheet = false
+                        if (cameraPermission.status.isGranted) {
+                            showQrScanner = true
+                        } else {
+                            cameraPermission.launchPermissionRequest()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.scan_config))
+                }
+                OutlinedButton(
+                    onClick = {
+                        showConfigMethodSheet = false
+                        showManualConfig = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.manual_config))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+
     if (showPermissionCheckDialog) {
         PermissionCheckDialog(
             missingPermissions = missingPermissions,
@@ -269,7 +355,6 @@ fun MainScreen(
         )
     }
 
-    // 简化权限检查对话框
     if (showSimplePermissionDialog) {
         SimplePermissionCheckDialog(
             missingPermissionCount = missingPermissionCount,
@@ -286,13 +371,10 @@ fun MainScreen(
         )
     }
 
-    // 消息提示
     uiState.message?.let { message ->
         LaunchedEffect(message) {
-            // 显示Toast
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            snackbarHostState.showSnackbar(message)
             viewModel.clearMessage()
         }
     }
 }
-

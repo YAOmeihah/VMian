@@ -1,14 +1,14 @@
 package com.java.vmian.presentation.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,24 +16,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.java.vmian.R
 import com.java.vmian.domain.model.PermissionImportance
 import com.java.vmian.domain.model.PermissionInfo
 import com.java.vmian.ui.theme.SuccessGreen
 import com.java.vmian.ui.theme.WarningOrange
 import com.java.vmian.domain.model.PermissionStatus
-import com.java.vmian.presentation.ui.components.ImmersiveContent
 import com.java.vmian.presentation.ui.components.PermissionGuideDialog
 import com.java.vmian.presentation.ui.components.PermissionItemCard
+import com.java.vmian.presentation.ui.components.PermissionOverviewCard
+import com.java.vmian.presentation.ui.components.AppCardDefaults
 import com.java.vmian.util.PermissionUtils
 
 /**
@@ -46,9 +49,12 @@ fun PermissionScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val resources = context.resources
+    val snackbarHostState = remember { SnackbarHostState() }
     var permissionStatus by remember { mutableStateOf<PermissionStatus?>(null) }
     var showGuideDialog by remember { mutableStateOf(false) }
     var selectedPermission by remember { mutableStateOf<PermissionInfo?>(null) }
+    var transientMessage by remember { mutableStateOf<String?>(null) }
 
     // 无障碍权限状态（独立管理，不影响启动）
     var accessibilityServiceEnabled by remember { mutableStateOf(false) }
@@ -89,9 +95,6 @@ fun PermissionScreen(
 
     // 延迟检测无障碍权限状态，完全独立于启动流程
     LaunchedEffect(Unit) {
-        // 延迟5秒后检测无障碍权限，确保页面完全加载
-        kotlinx.coroutines.delay(5000)
-
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             // 在后台线程检测无障碍权限状态
             val enabled = PermissionUtils.updateAccessibilityServiceStatus(context)
@@ -145,188 +148,199 @@ fun PermissionScreen(
         refreshPermissions()
     }
 
-    // 沉浸式背景容器
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        ImmersiveContent(
-            includeStatusBar = false,
-            includeNavigationBar = true
+    transientMessage?.let { message ->
+        LaunchedEffect(message) {
+            snackbarHostState.showSnackbar(message)
+            transientMessage = null
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+    ) { innerPadding ->
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
             Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-            // 状态栏占位
-            Spacer(
-                modifier = Modifier.windowInsetsPadding(
-                    WindowInsets.systemBars.only(WindowInsetsSides.Top)
-                )
-            )
-
-            // 固定位置的标题栏设计（与主页面完全一致）
-            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "权限设置",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-
-                IconButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        Icons.Default.ArrowBack,
-                        contentDescription = "返回",
-                        tint = MaterialTheme.colorScheme.onSurface
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .windowInsetsPadding(
+                        WindowInsets.systemBars.only(
+                            WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
+                        )
                     )
-                }
-            }
-
-            permissionStatus?.let { status ->
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(
+                            WindowInsets.systemBars.only(WindowInsetsSides.Top)
+                        )
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Text(
+                        text = stringResource(R.string.permission_title),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                    // 必需权限
-                    item {
-                        PermissionSectionHeader(
-                            title = "必需权限",
-                            subtitle = "应用核心功能必需的权限",
-                            importance = PermissionImportance.REQUIRED
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back),
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
+                }
 
-                    items(
-                        status.allPermissions.filter { it.importance == PermissionImportance.REQUIRED }
-                    ) { permission ->
-                        PermissionItemCard(
-                            permission = permission,
-                            onSettingsClick = {
-                                if (permission.settingsAction?.startsWith("manufacturer_") == true) {
-                                    selectedPermission = permission
-                                    showGuideDialog = true
-                                } else {
-                                    handlePermissionSettings(
-                                        context = context,
-                                        permission = permission,
-                                        cameraPermission = cameraPermission,
-                                        notificationPermission = notificationPermission,
-                                        onRefresh = refreshPermissions
-                                    )
-                                }
-                            },
-                            onRefresh = refreshPermissions
-                        )
-                    }
+                permissionStatus?.let { status ->
+                        val requiredPermissions = status.allPermissions.filter {
+                            it.importance == PermissionImportance.REQUIRED
+                        }
+                        val recommendedPermissions = status.allPermissions.filter {
+                            it.importance == PermissionImportance.RECOMMENDED
+                        }
+                        val optionalPermissions = status.allPermissions.filter {
+                            it.importance == PermissionImportance.OPTIONAL
+                        }
 
-                    // 推荐权限
-                    item {
-                        PermissionSectionHeader(
-                            title = "推荐权限",
-                            subtitle = "提升应用体验的重要权限",
-                            importance = PermissionImportance.RECOMMENDED
-                        )
-                    }
-
-                    items(
-                        status.allPermissions.filter { it.importance == PermissionImportance.RECOMMENDED }
-                    ) { permission ->
-                        PermissionItemCard(
-                            permission = permission,
-                            onSettingsClick = {
-                                if (permission.settingsAction?.startsWith("manufacturer_") == true) {
-                                    selectedPermission = permission
-                                    showGuideDialog = true
-                                } else {
-                                    handlePermissionSettings(
-                                        context = context,
-                                        permission = permission,
-                                        cameraPermission = cameraPermission,
-                                        notificationPermission = notificationPermission,
-                                        onRefresh = refreshPermissions
-                                    )
-                                }
-                            },
-                            onRefresh = refreshPermissions
-                        )
-                    }
-
-                    // 无障碍权限（独立显示，不影响启动）
-                    item {
-                        AccessibilityPermissionCard(
-                            enabled = accessibilityServiceEnabled,
-                            checked = accessibilityServiceChecked,
-                            onSettingsClick = {
-                                PermissionUtils.openAccessibilitySettings(context)
-                            },
-                            onRefresh = {
-                                // 清除缓存
-                                PermissionUtils.clearAccessibilityServiceCache()
-                                // 重置状态为检测中
-                                accessibilityServiceChecked = false
-                                // 触发重新检测（通过设置一个标志）
-                                refreshAccessibilityService = !refreshAccessibilityService
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            item {
+                                PermissionOverviewCard(status = status)
                             }
-                        )
-                    }
 
-                    // 可选权限
-                    val optionalPermissions = status.allPermissions.filter { 
-                        it.importance == PermissionImportance.OPTIONAL 
-                    }
-                    
-                    if (optionalPermissions.isNotEmpty()) {
-                        item {
-                            PermissionSectionHeader(
-                                title = "可选权限",
-                                subtitle = "增强功能的可选权限",
-                                importance = PermissionImportance.OPTIONAL
-                            )
-                        }
+                            item {
+                                PermissionSectionHeader(
+                                    title = stringResource(
+                                        R.string.permission_group_required_count,
+                                        requiredPermissions.size
+                                    ),
+                                    importance = PermissionImportance.REQUIRED
+                                )
+                            }
 
-                        items(optionalPermissions) { permission ->
-                            PermissionItemCard(
-                                permission = permission,
-                                onSettingsClick = {
-                                    if (permission.settingsAction?.startsWith("manufacturer_") == true) {
-                                        selectedPermission = permission
-                                        showGuideDialog = true
-                                    } else {
-                                        handlePermissionSettings(
-                                            context = context,
-                                            permission = permission,
-                                            cameraPermission = cameraPermission,
-                                            notificationPermission = notificationPermission,
-                                            onRefresh = refreshPermissions
-                                        )
+                            items(requiredPermissions) { permission ->
+                                PermissionItemCard(
+                                    permission = permission,
+                                    onSettingsClick = {
+                                        if (permission.settingsAction?.startsWith("manufacturer_") == true) {
+                                            selectedPermission = permission
+                                            showGuideDialog = true
+                                        } else {
+                                            handlePermissionSettings(
+                                                context = context,
+                                                permission = permission,
+                                                cameraPermission = cameraPermission,
+                                                notificationPermission = notificationPermission,
+                                                resources = resources,
+                                                onFeedback = { transientMessage = it }
+                                            )
+                                        }
                                     }
-                                },
-                                onRefresh = refreshPermissions
-                            )
+                                )
+                            }
+
+                            item {
+                                PermissionSectionHeader(
+                                    title = stringResource(
+                                        R.string.permission_group_recommended_count,
+                                        recommendedPermissions.size
+                                    ),
+                                    importance = PermissionImportance.RECOMMENDED
+                                )
+                            }
+
+                            items(recommendedPermissions) { permission ->
+                                PermissionItemCard(
+                                    permission = permission,
+                                    onSettingsClick = {
+                                        if (permission.settingsAction?.startsWith("manufacturer_") == true) {
+                                            selectedPermission = permission
+                                            showGuideDialog = true
+                                        } else {
+                                            handlePermissionSettings(
+                                                context = context,
+                                                permission = permission,
+                                                cameraPermission = cameraPermission,
+                                                notificationPermission = notificationPermission,
+                                                resources = resources,
+                                                onFeedback = { transientMessage = it }
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+
+                            item {
+                                AccessibilityPermissionCard(
+                                    enabled = accessibilityServiceEnabled,
+                                    checked = accessibilityServiceChecked,
+                                    onSettingsClick = {
+                                        PermissionUtils.openAccessibilitySettings(context)
+                                    },
+                                    onRefresh = {
+                                        PermissionUtils.clearAccessibilityServiceCache()
+                                        accessibilityServiceChecked = false
+                                        refreshAccessibilityService = !refreshAccessibilityService
+                                    }
+                                )
+                            }
+
+                            if (optionalPermissions.isNotEmpty()) {
+                                item {
+                                    PermissionSectionHeader(
+                                        title = stringResource(
+                                            R.string.permission_group_optional_count,
+                                            optionalPermissions.size
+                                        ),
+                                        importance = PermissionImportance.OPTIONAL
+                                    )
+                                }
+
+                                items(optionalPermissions) { permission ->
+                                    PermissionItemCard(
+                                        permission = permission,
+                                        onSettingsClick = {
+                                            if (permission.settingsAction?.startsWith("manufacturer_") == true) {
+                                                selectedPermission = permission
+                                                showGuideDialog = true
+                                            } else {
+                                                handlePermissionSettings(
+                                                    context = context,
+                                                    permission = permission,
+                                                    cameraPermission = cameraPermission,
+                                                    notificationPermission = notificationPermission,
+                                                    resources = resources,
+                                                    onFeedback = { transientMessage = it }
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                         }
+                    } ?: Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
                     }
-                }
-            } ?: run {
-                // 加载状态
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
                 }
             }
         }
-    }
 
     // 权限设置指导对话框
     if (showGuideDialog && selectedPermission != null) {
@@ -339,7 +353,6 @@ fun PermissionScreen(
             }
         )
     }
-    }
 }
 
 
@@ -350,52 +363,34 @@ fun PermissionScreen(
 @Composable
 private fun PermissionSectionHeader(
     title: String,
-    subtitle: String,
     importance: PermissionImportance
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp, bottom = 0.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Surface(
+            shape = MaterialTheme.shapes.extraSmall,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh
         ) {
             Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                text = importance.displayName,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                fontWeight = FontWeight.Medium
             )
-
-            // 重要性指示器
-            Surface(
-                shape = MaterialTheme.shapes.extraSmall,
-                color = when (importance) {
-                    PermissionImportance.REQUIRED -> MaterialTheme.colorScheme.errorContainer
-                    PermissionImportance.RECOMMENDED -> MaterialTheme.colorScheme.primaryContainer
-                    PermissionImportance.OPTIONAL -> MaterialTheme.colorScheme.secondaryContainer
-                }
-            ) {
-                Text(
-                    text = importance.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = when (importance) {
-                        PermissionImportance.REQUIRED -> MaterialTheme.colorScheme.onErrorContainer
-                        PermissionImportance.RECOMMENDED -> MaterialTheme.colorScheme.onPrimaryContainer
-                        PermissionImportance.OPTIONAL -> MaterialTheme.colorScheme.onSecondaryContainer
-                    },
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                    fontWeight = FontWeight.Medium
-                )
-            }
         }
-
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -408,10 +403,12 @@ private fun PermissionSectionHeader(
 @OptIn(ExperimentalPermissionsApi::class)
 private fun handleRuntimePermissionRequest(
     context: android.content.Context,
+    resources: android.content.res.Resources,
     permission: PermissionInfo,
     permissionState: com.google.accompanist.permissions.PermissionState,
     androidPermission: String,
-    permissionDescription: String
+    permissionDescription: String,
+    onFeedback: (String) -> Unit
 ) {
     // 使用实时权限状态检查，避免Accompanist缓存问题
     val actualPermissionGranted = ContextCompat.checkSelfPermission(
@@ -436,28 +433,34 @@ private fun handleRuntimePermissionRequest(
     when {
         actualPermissionGranted -> {
             // 权限已授权的处理
-            handleGrantedPermission(context, permission, androidPermission)
+            handleGrantedPermission(context, resources, permission, androidPermission, onFeedback)
         }
         isPermanentlyDenied -> {
             // 权限被永久拒绝的处理
-            handlePermanentlyDeniedPermission(context, permission, permissionState, androidPermission, permissionDescription)
+            handlePermanentlyDeniedPermission(
+                context,
+                resources,
+                permission,
+                permissionState,
+                androidPermission,
+                permissionDescription,
+                onFeedback
+            )
         }
         permissionState.status.shouldShowRationale -> {
             // 需要显示权限说明，然后申请权限
-            android.widget.Toast.makeText(
-                context,
-                "$permissionDescription，请允许权限申请",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
+            onFeedback(resources.getString(R.string.permission_rationale_message, permissionDescription))
             permissionState.launchPermissionRequest()
         }
         else -> {
             // 首次申请权限
-            android.widget.Toast.makeText(
-                context,
-                "正在申请${permission.name}，$permissionDescription",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
+            onFeedback(
+                resources.getString(
+                    R.string.permission_request_message,
+                    permission.name,
+                    permissionDescription
+                )
+            )
             permissionState.launchPermissionRequest()
         }
     }
@@ -468,26 +471,30 @@ private fun handleRuntimePermissionRequest(
  */
 private fun handleGrantedPermission(
     context: android.content.Context,
+    resources: android.content.res.Resources,
     permission: PermissionInfo,
-    androidPermission: String
+    androidPermission: String,
+    onFeedback: (String) -> Unit
 ) {
     when (androidPermission) {
         android.Manifest.permission.CAMERA -> {
             // 相机权限已授权，提示用户可以重新申请以确保状态同步
-            android.widget.Toast.makeText(
-                context,
-                "${permission.name}已授权，正在重新申请以确保状态同步",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
+            onFeedback(
+                resources.getString(
+                    R.string.permission_granted_manage_message,
+                    permission.name
+                )
+            )
             // 对于相机权限，即使已授权也可以重新申请，不需要跳转设置
         }
         else -> {
             // 其他权限已授权，跳转到设置页面进行管理
-            android.widget.Toast.makeText(
-                context,
-                "${permission.name}已授权，正在跳转到设置页面进行管理",
-                android.widget.Toast.LENGTH_SHORT
-            ).show()
+            onFeedback(
+                resources.getString(
+                    R.string.permission_granted_redirect_message,
+                    permission.name
+                )
+            )
             jumpToPermissionSettings(context, androidPermission)
         }
     }
@@ -499,29 +506,34 @@ private fun handleGrantedPermission(
 @OptIn(ExperimentalPermissionsApi::class)
 private fun handlePermanentlyDeniedPermission(
     context: android.content.Context,
+    resources: android.content.res.Resources,
     permission: PermissionInfo,
     permissionState: com.google.accompanist.permissions.PermissionState,
     androidPermission: String,
-    permissionDescription: String
+    permissionDescription: String,
+    onFeedback: (String) -> Unit
 ) {
     when (androidPermission) {
         android.Manifest.permission.CAMERA -> {
             // 相机权限被永久拒绝，但仍然可以尝试直接申请
-            android.widget.Toast.makeText(
-                context,
-                "${permission.name}需要重新授权，$permissionDescription",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
+            onFeedback(
+                resources.getString(
+                    R.string.permission_needs_reauth_message,
+                    permission.name,
+                    permissionDescription
+                )
+            )
             // 相机权限即使被永久拒绝也可以重新申请，不需要强制跳转设置
             permissionState.launchPermissionRequest()
         }
         else -> {
             // 其他权限被永久拒绝，跳转到系统设置页面
-            android.widget.Toast.makeText(
-                context,
-                "${permission.name}需要在系统设置中手动开启，正在跳转到设置页面",
-                android.widget.Toast.LENGTH_LONG
-            ).show()
+            onFeedback(
+                resources.getString(
+                    R.string.permission_needs_manual_enable_message,
+                    permission.name
+                )
+            )
             jumpToPermissionSettings(context, androidPermission)
         }
     }
@@ -553,17 +565,20 @@ private fun handlePermissionSettings(
     permission: PermissionInfo,
     cameraPermission: com.google.accompanist.permissions.PermissionState,
     notificationPermission: com.google.accompanist.permissions.PermissionState?,
-    onRefresh: () -> Unit
+    resources: android.content.res.Resources,
+    onFeedback: (String) -> Unit
 ) {
     when {
         // 处理运行时权限申请
         permission.canRequest && permission.id == "camera" -> {
             handleRuntimePermissionRequest(
                 context = context,
+                resources = resources,
                 permission = permission,
                 permissionState = cameraPermission,
                 androidPermission = android.Manifest.permission.CAMERA,
-                permissionDescription = "相机权限用于扫描二维码配置"
+                permissionDescription = resources.getString(R.string.camera_permission_description),
+                onFeedback = onFeedback
             )
         }
 
@@ -572,40 +587,49 @@ private fun handlePermissionSettings(
                 notificationPermission?.let { notifPerm ->
                     handleRuntimePermissionRequest(
                         context = context,
+                        resources = resources,
                         permission = permission,
                         permissionState = notifPerm,
                         androidPermission = android.Manifest.permission.POST_NOTIFICATIONS,
-                        permissionDescription = "通知权限用于显示前台服务状态"
+                        permissionDescription = resources.getString(R.string.notification_permission_description),
+                        onFeedback = onFeedback
                     )
                 } ?: run {
                     // 降级到设置页面
+                    onFeedback(resources.getString(R.string.notification_settings_device_redirect))
                     PermissionUtils.openNotificationPermissionSettings(context)
                 }
             } else {
                 // Android 13以下版本跳转到应用详情
+                onFeedback(resources.getString(R.string.notification_settings_legacy_redirect))
                 PermissionUtils.openAppDetailsSettings(context)
             }
         }
 
         // 处理系统设置跳转
         permission.settingsAction == "android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS" -> {
+            onFeedback(resources.getString(R.string.open_notification_listener_settings))
             PermissionUtils.openNotificationListenerSettings(context)
         }
 
         permission.settingsAction == "android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" -> {
+            onFeedback(resources.getString(R.string.request_ignore_battery_optimization))
             PermissionUtils.requestIgnoreBatteryOptimization(context)
         }
 
         permission.settingsAction == "android.settings.APP_NOTIFICATION_SETTINGS" -> {
+            onFeedback(resources.getString(R.string.open_notification_settings))
             PermissionUtils.openNotificationPermissionSettings(context)
         }
 
         permission.settingsAction == "android.settings.ACCESSIBILITY_SETTINGS" -> {
+            onFeedback(resources.getString(R.string.open_accessibility_settings))
             PermissionUtils.openAccessibilitySettings(context)
         }
 
         else -> {
             // 默认跳转到应用详情页面
+            onFeedback(resources.getString(R.string.open_app_details))
             PermissionUtils.openAppDetailsSettings(context)
         }
     }
@@ -615,6 +639,7 @@ private fun handlePermissionSettings(
  * 无障碍权限卡片（独立组件，不影响启动）
  * 设计与标准权限卡片保持一致
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AccessibilityPermissionCard(
     enabled: Boolean,
@@ -622,167 +647,145 @@ private fun AccessibilityPermissionCard(
     onSettingsClick: () -> Unit,
     onRefresh: () -> Unit
 ) {
+    val neutralContainer = MaterialTheme.colorScheme.surfaceContainerHigh
+    val neutralContent = MaterialTheme.colorScheme.onSurfaceVariant
+    val statusText = when {
+        !checked -> stringResource(R.string.accessibility_status_checking)
+        enabled -> stringResource(R.string.accessibility_status_enabled)
+        else -> stringResource(R.string.accessibility_status_disabled)
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
+        colors = AppCardDefaults.colors(),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 权限标题和状态
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // 状态图标
-                    Icon(
-                        imageVector = when {
-                            checked && enabled -> Icons.Default.CheckCircle
-                            checked -> Icons.Default.Warning
-                            else -> Icons.Default.Refresh
-                        },
-                        contentDescription = null,
-                        tint = when {
-                            checked && enabled -> SuccessGreen
-                            checked -> WarningOrange
-                            else -> MaterialTheme.colorScheme.primary
-                        },
-                        modifier = Modifier.size(20.dp)
-                    )
-
-                    // 权限名称
-                    Text(
-                        text = "无障碍服务",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                // 重要性标签
-                AssistChip(
-                    onClick = { },
-                    label = {
-                        Text(
-                            text = "推荐",
-                            style = MaterialTheme.typography.labelSmall
-                        )
+                Icon(
+                    imageVector = when {
+                        checked && enabled -> Icons.Default.CheckCircle
+                        checked -> Icons.Default.Warning
+                        else -> Icons.Default.Refresh
                     },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        labelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ),
-                    modifier = Modifier.height(24.dp)
-                )
-            }
-
-            // 权限描述
-            Text(
-                text = "提高应用保活成功率，确保支付监听服务稳定运行。该服务仅用于保活，不会读取或处理任何用户数据。",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // 状态和操作按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 状态文本
-                Text(
-                    text = when {
-                        !checked -> "检测中..."
-                        enabled -> "已启用"
-                        else -> "未启用"
+                    contentDescription = null,
+                    tint = when {
+                        checked && enabled -> SuccessGreen
+                        checked -> WarningOrange
+                        else -> MaterialTheme.colorScheme.primary
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = when {
-                        !checked -> MaterialTheme.colorScheme.primary
-                        enabled -> SuccessGreen
-                        else -> WarningOrange
-                    },
-                    fontWeight = FontWeight.Medium
+                    modifier = Modifier
+                        .size(20.dp)
+                        .padding(top = 2.dp)
                 )
 
-                // 操作按钮
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // 刷新按钮
-                    TextButton(
-                        onClick = onRefresh,
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text(
-                            text = "刷新",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    // 设置按钮
-                    Button(
-                        onClick = onSettingsClick,
-                        enabled = checked,
-                        modifier = Modifier.height(32.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (enabled) {
-                                MaterialTheme.colorScheme.secondary
-                            } else {
-                                MaterialTheme.colorScheme.primary
-                            }
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (enabled) "管理权限" else "设置",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-
-            // 特殊提示
-            if (checked && !enabled) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
                         Text(
-                            text = "首次启用时系统会自动回到桌面，这是正常行为",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            text = stringResource(R.string.accessibility_service),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
                         )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        StatusBadge(
+                            text = statusText,
+                            containerColor = when {
+                                enabled -> neutralContainer
+                                else -> neutralContainer
+                            },
+                            contentColor = when {
+                                enabled -> SuccessGreen
+                                !checked -> neutralContent
+                                else -> neutralContent
+                            }
+                        )
+                    }
+
+                    Text(
+                        text = stringResource(R.string.accessibility_compact_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = if (enabled && checked) 1 else 2
+                    )
+
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextButton(
+                            onClick = onRefresh,
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Text(stringResource(R.string.refresh_status))
+                        }
+
+                        Button(
+                            onClick = onSettingsClick,
+                            modifier = Modifier.height(34.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (enabled) {
+                                    MaterialTheme.colorScheme.surfaceContainerHighest
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                },
+                                contentColor = if (enabled) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimary
+                                }
+                            )
+                        ) {
+                            Text(
+                                text = if (enabled) {
+                                    stringResource(R.string.manage_permission)
+                                } else {
+                                    stringResource(R.string.setup)
+                                },
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StatusBadge(
+    text: String,
+    containerColor: Color,
+    contentColor: Color
+) {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = containerColor
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = contentColor,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            fontWeight = FontWeight.Medium
+        )
     }
 }

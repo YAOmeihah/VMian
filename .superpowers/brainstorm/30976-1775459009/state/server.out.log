@@ -1,0 +1,3 @@
+{"type":"server-started","port":62164,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62164","screen_dir":"E:\\Tools\\Android\\AndroidStudioProjects\\VMian\\.superpowers\\brainstorm\\30976-1775459009\\content","state_dir":"E:\\Tools\\Android\\AndroidStudioProjects\\VMian\\.superpowers\\brainstorm\\30976-1775459009\\state"}
+{"type":"screen-added","file":"E:\\Tools\\Android\\AndroidStudioProjects\\VMian\\.superpowers\\brainstorm\\30976-1775459009\\content\\layout-options.html"}
+{"type":"server-stopped","reason":"owner process exited"}

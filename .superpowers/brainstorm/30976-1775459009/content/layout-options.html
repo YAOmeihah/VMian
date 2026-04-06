@@ -1,0 +1,101 @@
+<h2>日志区和权限卡片怎么重构更合适？</h2>
+<p class="subtitle">我把重点放在 3 件事：日志区必须可见、按钮不能挤压、权限卡片要更紧凑。点选更接近你想法的方向。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A. 工具控制台</div>
+        <div class="mockup-body">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="padding:12px;border:1px solid #cbd5e1;border-radius:14px;background:#eff6ff;">
+              <div style="font-size:12px;opacity:.75;">当前状态</div>
+              <div style="font-weight:700;margin-top:4px;">监控端已准备就绪</div>
+              <div style="font-size:12px;margin-top:4px;">主操作置顶，日志区优先占满剩余空间</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button class="mock-button">检测心跳</button>
+              <button class="mock-button">权限设置</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;border:1px solid #cbd5e1;border-radius:12px;background:white;">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <span style="padding:4px 8px;border-radius:999px;background:#dbeafe;font-size:12px;">运行日志</span>
+                <span style="padding:4px 8px;border-radius:999px;background:#f1f5f9;font-size:12px;">推送日志</span>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <button class="mock-button" style="padding:6px 10px;">跟随</button>
+                <button class="mock-button" style="padding:6px 10px;">清空</button>
+              </div>
+            </div>
+            <div style="height:220px;border:1px solid #cbd5e1;border-radius:12px;background:#0f172a;color:#e2e8f0;padding:10px;overflow:hidden;">
+              <div style="font-family:monospace;font-size:12px;line-height:1.6;">[15:20:01] [网络] 连接成功</div>
+              <div style="font-family:monospace;font-size:12px;line-height:1.6;">[15:20:04] [心跳] 心跳发送成功</div>
+              <div style="font-family:monospace;font-size:12px;line-height:1.6;">[15:20:09] [成功] 微信 ¥12.34 - 推送完成</div>
+              <div style="font-family:monospace;font-size:12px;line-height:1.6;">[15:20:16] [系统] 等待下一次事件</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>工具控制台</h3>
+      <p>把日志区当主内容，按钮和切换控件压到一层工具栏里，最适合频繁盯日志。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">B. 紧凑设置面板</div>
+        <div class="mockup-body">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="padding:12px;border:1px solid #cbd5e1;border-radius:14px;background:#f8fafc;">
+              <div style="font-size:12px;opacity:.75;">权限总览</div>
+              <div style="font-weight:700;margin-top:4px;">已完成 4/6 项</div>
+              <div style="height:6px;background:#e2e8f0;border-radius:999px;margin-top:8px;overflow:hidden;">
+                <div style="width:66%;height:100%;background:#0ea5e9;"></div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;background:white;">
+                <div>
+                  <div style="font-weight:600;">通知监听</div>
+                  <div style="font-size:12px;color:#64748b;">必需</div>
+                </div>
+                <button class="mock-button" style="padding:6px 10px;">设置</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;background:white;">
+                <div>
+                  <div style="font-weight:600;">电池优化白名单</div>
+                  <div style="font-size:12px;color:#64748b;">推荐</div>
+                </div>
+                <button class="mock-button" style="padding:6px 10px;">打开</button>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid #cbd5e1;border-radius:12px;background:white;">
+                <div>
+                  <div style="font-weight:600;">无障碍服务</div>
+                  <div style="font-size:12px;color:#64748b;">推荐</div>
+                </div>
+                <button class="mock-button" style="padding:6px 10px;">管理</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <button class="mock-button" style="padding:8px 6px;">运行</button>
+              <button class="mock-button" style="padding:8px 6px;">推送</button>
+              <button class="mock-button" style="padding:8px 6px;">清空</button>
+            </div>
+            <div style="height:140px;border:1px solid #cbd5e1;border-radius:12px;background:#111827;color:#e5e7eb;padding:10px;font-family:monospace;font-size:12px;line-height:1.6;">
+              [15:20:04] [心跳] 心跳发送成功<br/>
+              [15:20:09] [成功] 微信 ¥12.34<br/>
+              [15:20:16] [系统] 等待下一次事件
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>紧凑设置面板</h3>
+      <p>权限页会更克制，卡片像设置列表；日志区更轻量，但视觉重点不如 A 那么偏日志。</p>
+    </div>
+  </div>
+</div>

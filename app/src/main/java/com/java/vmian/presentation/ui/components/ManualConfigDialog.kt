@@ -1,11 +1,16 @@
 package com.java.vmian.presentation.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.java.vmian.R
 
 /**
  * 手动配置对话框
@@ -17,6 +22,16 @@ fun ManualConfigDialog(
 ) {
     var host by remember { mutableStateOf("") }
     var key by remember { mutableStateOf("") }
+    val trimmedHost = host.trim()
+    val trimmedKey = key.trim()
+    val hostError = remember(trimmedHost) {
+        trimmedHost.isNotEmpty() &&
+            !trimmedHost.startsWith("http://") &&
+            !trimmedHost.startsWith("https://")
+    }
+    val keyError = remember(trimmedKey, key) {
+        key.isNotEmpty() && trimmedKey.isEmpty()
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -29,23 +44,52 @@ fun ManualConfigDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "手动配置",
+                    text = stringResource(R.string.manual_config),
                     style = MaterialTheme.typography.titleLarge
+                )
+
+                Text(
+                    text = stringResource(R.string.manual_config_hint),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 OutlinedTextField(
                     value = host,
                     onValueChange = { host = it },
-                    label = { Text("服务器地址") },
-                    placeholder = { Text("例如: vpay.test") },
+                    label = { Text(stringResource(R.string.server_address)) },
+                    placeholder = { Text(stringResource(R.string.server_address_example)) },
+                    supportingText = {
+                        Text(
+                            if (hostError) {
+                                stringResource(R.string.server_address_error)
+                            } else {
+                                stringResource(R.string.server_address_supporting)
+                            }
+                        )
+                    },
+                    isError = hostError,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 OutlinedTextField(
                     value = key,
                     onValueChange = { key = it },
-                    label = { Text("监控密钥") },
-                    placeholder = { Text("请输入 monitorKey") },
+                    label = { Text(stringResource(R.string.monitor_key_input)) },
+                    placeholder = { Text(stringResource(R.string.monitor_key_placeholder)) },
+                    supportingText = {
+                        Text(
+                            if (keyError) {
+                                stringResource(R.string.monitor_key_error)
+                            } else {
+                                stringResource(R.string.monitor_key_supporting)
+                            }
+                        )
+                    },
+                    isError = keyError,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -57,19 +101,19 @@ fun ManualConfigDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("取消")
+                        Text(stringResource(R.string.cancel))
                     }
 
                     Button(
                         onClick = {
-                            if (host.isNotBlank() && key.isNotBlank()) {
-                                onConfigSaved(host.trim(), key.trim())
+                            if (trimmedHost.isNotBlank() && trimmedKey.isNotBlank() && !hostError) {
+                                onConfigSaved(trimmedHost, trimmedKey)
                             }
                         },
-                        enabled = host.isNotBlank() && key.isNotBlank(),
+                        enabled = trimmedHost.isNotBlank() && trimmedKey.isNotBlank() && !hostError,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("保存")
+                        Text(stringResource(R.string.save))
                     }
                 }
             }
