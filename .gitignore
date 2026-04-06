@@ -16,3 +16,12 @@ local.properties
 .claude
 .codex
 /superpowers
+.superpowers
+
+# Android build and release artifacts
+app/build/
+app/release/
+*.apk
+*.aab
+*.ap_
+*.dm
