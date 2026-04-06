@@ -1,12 +1,49 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(::load)
+    }
+}
+
+fun Project.secret(name: String): String? {
+    return providers.gradleProperty(name)
+        .orNull
+        ?: providers.environmentVariable(name).orNull
+        ?: localProperties.getProperty(name)
+}
+
+val releaseStoreFile = secret("RELEASE_STORE_FILE")
+val releaseStorePassword = secret("RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = secret("RELEASE_KEY_ALIAS")
+val releaseKeyPassword = secret("RELEASE_KEY_PASSWORD")
+val hasReleaseSigning =
+    !releaseStoreFile.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
 android {
     namespace = "com.java.vmian"
     compileSdk = 35
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.java.vmian"
@@ -25,7 +62,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     compileOptions {
@@ -37,6 +76,26 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+}
+
+gradle.taskGraph.whenReady {
+    val needsReleaseSigning = allTasks.any { task ->
+        val name = task.name.lowercase()
+        "release" in name && (
+            name.startsWith("assemble") ||
+                name.startsWith("bundle") ||
+                name.startsWith("package") ||
+                name.startsWith("publish")
+            )
+    }
+
+    if (needsReleaseSigning && !hasReleaseSigning) {
+        throw GradleException(
+            "Release signing is required for release builds. " +
+                "Provide RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD, RELEASE_KEY_ALIAS, " +
+                "and RELEASE_KEY_PASSWORD via local.properties, Gradle properties, or environment variables."
+        )
     }
 }
 

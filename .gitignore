@@ -25,3 +25,6 @@ app/release/
 *.aab
 *.ap_
 *.dm
+*.jks
+*.keystore
+docs
