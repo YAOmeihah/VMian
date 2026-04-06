@@ -37,11 +37,13 @@ fun ManualConfigDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(16.dp),
+            colors = AppCardDefaults.heroColors(),
+            elevation = AppCardDefaults.heroElevation()
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Text(
                     text = stringResource(R.string.manual_config),
@@ -64,7 +66,7 @@ fun ManualConfigDialog(
                             if (hostError) {
                                 stringResource(R.string.server_address_error)
                             } else {
-                                stringResource(R.string.server_address_supporting)
+                                stringResource(R.string.manual_config_host_hint)
                             }
                         )
                     },
@@ -83,7 +85,7 @@ fun ManualConfigDialog(
                             if (keyError) {
                                 stringResource(R.string.monitor_key_error)
                             } else {
-                                stringResource(R.string.monitor_key_supporting)
+                                stringResource(R.string.manual_config_key_hint)
                             }
                         )
                     },

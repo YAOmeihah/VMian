@@ -1,6 +1,7 @@
 package com.java.vmian.presentation.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,20 +18,29 @@ import com.java.vmian.domain.model.PaymentConfig
 fun ConfigInfoCard(config: PaymentConfig?) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = AppCardDefaults.colors()
+        colors = AppCardDefaults.infoColors(),
+        elevation = AppCardDefaults.sectionElevation()
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = stringResource(R.string.config_info),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(R.string.config_snapshot_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = stringResource(R.string.config_snapshot_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 AssistChip(
                     onClick = { },
                     label = {
@@ -44,30 +54,32 @@ fun ConfigInfoCard(config: PaymentConfig?) {
                     }
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.monitor_host),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = config?.host ?: stringResource(R.string.config_host_empty),
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.monitor_key),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = if (config?.monitorKey?.isNotEmpty() == true) {
-                    stringResource(R.string.configured)
-                } else {
-                    stringResource(R.string.config_key_empty)
-                },
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = stringResource(R.string.monitor_host),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = config?.host ?: stringResource(R.string.config_host_empty),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = stringResource(R.string.monitor_key),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (config?.monitorKey?.isNotEmpty() == true) {
+                        stringResource(R.string.configured)
+                    } else {
+                        stringResource(R.string.config_key_empty)
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }

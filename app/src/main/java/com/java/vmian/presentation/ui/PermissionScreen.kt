@@ -1,8 +1,6 @@
 package com.java.vmian.presentation.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -15,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,7 +34,7 @@ import com.java.vmian.ui.theme.WarningOrange
 import com.java.vmian.domain.model.PermissionStatus
 import com.java.vmian.presentation.ui.components.PermissionGuideDialog
 import com.java.vmian.presentation.ui.components.PermissionItemCard
-import com.java.vmian.presentation.ui.components.PermissionOverviewCard
+import com.java.vmian.presentation.ui.components.PermissionSummaryHero
 import com.java.vmian.presentation.ui.components.AppCardDefaults
 import com.java.vmian.util.PermissionUtils
 
@@ -55,6 +54,8 @@ fun PermissionScreen(
     var showGuideDialog by remember { mutableStateOf(false) }
     var selectedPermission by remember { mutableStateOf<PermissionInfo?>(null) }
     var transientMessage by remember { mutableStateOf<String?>(null) }
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
     // 无障碍权限状态（独立管理，不影响启动）
     var accessibilityServiceEnabled by remember { mutableStateOf(false) }
@@ -70,6 +71,21 @@ fun PermissionScreen(
     // 刷新权限状态的函数
     val refreshPermissions = {
         permissionStatus = PermissionUtils.getAllPermissionStatus(context)
+    }
+    val handlePermissionClick: (PermissionInfo) -> Unit = { permission ->
+        if (permission.settingsAction?.startsWith("manufacturer_") == true) {
+            selectedPermission = permission
+            showGuideDialog = true
+        } else {
+            handlePermissionSettings(
+                context = context,
+                permission = permission,
+                cameraPermission = cameraPermission,
+                notificationPermission = notificationPermission,
+                resources = resources,
+                onFeedback = { transientMessage = it }
+            )
+        }
     }
 
     // 初始化权限状态
@@ -158,7 +174,22 @@ fun PermissionScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.permission_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.back)
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
     ) { innerPadding ->
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -174,34 +205,6 @@ fun PermissionScreen(
                         )
                     )
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(
-                            WindowInsets.systemBars.only(WindowInsetsSides.Top)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.permission_title),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    IconButton(
-                        onClick = onNavigateBack,
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.back),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
                 permissionStatus?.let { status ->
                         val requiredPermissions = status.allPermissions.filter {
                             it.importance == PermissionImportance.REQUIRED
@@ -215,11 +218,11 @@ fun PermissionScreen(
 
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             item {
-                                PermissionOverviewCard(status = status)
+                                PermissionSummaryHero(status = status)
                             }
 
                             item {
@@ -235,21 +238,7 @@ fun PermissionScreen(
                             items(requiredPermissions) { permission ->
                                 PermissionItemCard(
                                     permission = permission,
-                                    onSettingsClick = {
-                                        if (permission.settingsAction?.startsWith("manufacturer_") == true) {
-                                            selectedPermission = permission
-                                            showGuideDialog = true
-                                        } else {
-                                            handlePermissionSettings(
-                                                context = context,
-                                                permission = permission,
-                                                cameraPermission = cameraPermission,
-                                                notificationPermission = notificationPermission,
-                                                resources = resources,
-                                                onFeedback = { transientMessage = it }
-                                            )
-                                        }
-                                    }
+                                    onSettingsClick = { handlePermissionClick(permission) }
                                 )
                             }
 
@@ -266,21 +255,7 @@ fun PermissionScreen(
                             items(recommendedPermissions) { permission ->
                                 PermissionItemCard(
                                     permission = permission,
-                                    onSettingsClick = {
-                                        if (permission.settingsAction?.startsWith("manufacturer_") == true) {
-                                            selectedPermission = permission
-                                            showGuideDialog = true
-                                        } else {
-                                            handlePermissionSettings(
-                                                context = context,
-                                                permission = permission,
-                                                cameraPermission = cameraPermission,
-                                                notificationPermission = notificationPermission,
-                                                resources = resources,
-                                                onFeedback = { transientMessage = it }
-                                            )
-                                        }
-                                    }
+                                    onSettingsClick = { handlePermissionClick(permission) }
                                 )
                             }
 
@@ -311,23 +286,9 @@ fun PermissionScreen(
                                 }
 
                                 items(optionalPermissions) { permission ->
-                                    PermissionItemCard(
-                                        permission = permission,
-                                        onSettingsClick = {
-                                            if (permission.settingsAction?.startsWith("manufacturer_") == true) {
-                                                selectedPermission = permission
-                                                showGuideDialog = true
-                                            } else {
-                                                handlePermissionSettings(
-                                                    context = context,
-                                                    permission = permission,
-                                                    cameraPermission = cameraPermission,
-                                                    notificationPermission = notificationPermission,
-                                                    resources = resources,
-                                                    onFeedback = { transientMessage = it }
-                                                )
-                                            }
-                                        }
+                                PermissionItemCard(
+                                    permission = permission,
+                                        onSettingsClick = { handlePermissionClick(permission) }
                                     )
                                 }
                             }
@@ -639,7 +600,6 @@ private fun handlePermissionSettings(
  * 无障碍权限卡片（独立组件，不影响启动）
  * 设计与标准权限卡片保持一致
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AccessibilityPermissionCard(
     enabled: Boolean,
@@ -657,9 +617,9 @@ private fun AccessibilityPermissionCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = AppCardDefaults.colors(),
+        colors = AppCardDefaults.infoColors(),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = AppCardDefaults.sectionElevation()
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -726,10 +686,10 @@ private fun AccessibilityPermissionCard(
                         maxLines = if (enabled && checked) 1 else 2
                     )
 
-                    FlowRow(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(
                             onClick = onRefresh,
@@ -737,6 +697,8 @@ private fun AccessibilityPermissionCard(
                         ) {
                             Text(stringResource(R.string.refresh_status))
                         }
+
+                        Spacer(modifier = Modifier.weight(1f))
 
                         Button(
                             onClick = onSettingsClick,

@@ -16,31 +16,26 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 // 深色模式配色 - 现代蓝绿主题
 private val DarkColorScheme = darkColorScheme(
-    // 主要颜色 - 深海蓝系
-    primary = PrimaryBlueLight,
-    onPrimary = Color(0xFF001A33),
-    primaryContainer = PrimaryBlueDarkContainer,
+    primary = PrimaryNavyLight,
+    onPrimary = Color(0xFF062033),
+    primaryContainer = PrimaryNavyDarkContainer,
     onPrimaryContainer = Color(0xFFD1E4FF),
 
-    // 次要颜色 - 蓝灰系
-    secondary = SecondaryBlueGrayLight,
-    onSecondary = Color(0xFF1A1A1A),
-    secondaryContainer = SecondaryBlueGrayDarkContainer,
-    onSecondaryContainer = Color(0xFFCFD8DC),
+    secondary = SecondarySlateLight,
+    onSecondary = Color(0xFF0D1C2B),
+    secondaryContainer = SecondarySlateDarkContainer,
+    onSecondaryContainer = Color(0xFFD8E3EE),
 
-    // 第三颜色 - 琥珀系
-    tertiary = Color(0xFFFFB74D),
-    onTertiary = Color(0xFF3E2723),
-    tertiaryContainer = Color(0xFFBF360C),
-    onTertiaryContainer = Color(0xFFFFE0B2),
+    tertiary = AccentBlue,
+    onTertiary = Color(0xFFE8FBFF),
+    tertiaryContainer = Color(0xFF124556),
+    onTertiaryContainer = Color(0xFFD8F1F7),
 
-    // 错误颜色
     error = Color(0xFFEF5350),
     onError = Color(0xFF690005),
     errorContainer = Color(0xFFB71C1C),
     onErrorContainer = Color(0xFFFFDAD6),
 
-    // 背景和表面
     background = BackgroundDark,
     onBackground = OnBackgroundDark,
     surface = SurfaceDark,
@@ -48,62 +43,53 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = NeutralGray800,
     onSurfaceVariant = NeutralGray300,
 
-    // 轮廓
     outline = NeutralGray600,
     outlineVariant = NeutralGray700,
 
-    // 表面容器层次
-    surfaceContainer = Color(0xFF1F252A),
-    surfaceContainerHigh = Color(0xFF252B30),
-    surfaceContainerHighest = Color(0xFF2B3136),
-    surfaceContainerLow = Color(0xFF191E23),
-    surfaceContainerLowest = Color(0xFF0A0F14)
+    surfaceContainer = Color(0xFF1B2632),
+    surfaceContainerHigh = Color(0xFF223140),
+    surfaceContainerHighest = Color(0xFF2A3A4A),
+    surfaceContainerLow = Color(0xFF15202B),
+    surfaceContainerLowest = Color(0xFF0B121A)
 )
 
 
 // 浅色模式配色 - 现代蓝绿主题
 private val LightColorScheme = lightColorScheme(
-    // 主要颜色 - 深海蓝系
-    primary = PrimaryBlue,
+    primary = PrimaryNavy,
     onPrimary = Color.White,
-    primaryContainer = PrimaryBlueContainer,
-    onPrimaryContainer = Color(0xFF001A33),
+    primaryContainer = PrimaryNavyContainer,
+    onPrimaryContainer = Color(0xFF0A2235),
 
-    // 次要颜色 - 蓝灰系
-    secondary = SecondaryBlueGray,
+    secondary = SecondarySlate,
     onSecondary = Color.White,
-    secondaryContainer = SecondaryBlueGrayContainer,
-    onSecondaryContainer = Color(0xFF1A1A1A),
+    secondaryContainer = SecondarySlateContainer,
+    onSecondaryContainer = Color(0xFF18293A),
 
-    // 第三颜色 - 琥珀系
-    tertiary = WarningAmber,
+    tertiary = AccentBlue,
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFE0B2),
-    onTertiaryContainer = Color(0xFF3E2723),
+    tertiaryContainer = AccentBlueContainer,
+    onTertiaryContainer = Color(0xFF103746),
 
-    // 错误颜色
     error = ErrorRed,
     onError = Color.White,
     errorContainer = Color(0xFFFFDAD6),
     onErrorContainer = Color(0xFF410002),
 
-    // 背景和表面
     background = BackgroundLight,
     onBackground = OnBackgroundLight,
     surface = SurfaceLight,
     onSurface = OnSurfaceLight,
     surfaceVariant = NeutralGray100,
-    onSurfaceVariant = NeutralGray700,
+    onSurfaceVariant = NeutralGray600,
 
-    // 轮廓
     outline = NeutralGray400,
     outlineVariant = NeutralGray200,
 
-    // 表面容器层次
-    surfaceContainer = NeutralGray50,
-    surfaceContainerHigh = Color(0xFFECEFF1),
-    surfaceContainerHighest = Color(0xFFE0E3E6),
-    surfaceContainerLow = Color(0xFFF5F7FA),
+    surfaceContainer = Color(0xFFF1F5F9),
+    surfaceContainerHigh = Color(0xFFE9EEF5),
+    surfaceContainerHighest = Color(0xFFDDE5EE),
+    surfaceContainerLow = Color(0xFFF7FAFD),
     surfaceContainerLowest = Color.White
 )
 
@@ -111,8 +97,6 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun VMianTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    // 默认启用动态颜色以支持Material You，在不支持的设备上回退到品牌色
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -125,16 +109,11 @@ fun VMianTheme(
         else -> LightColorScheme
     }
 
-    // 设置沉浸式状态栏和导航栏
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-
-            // 启用边到边显示
             WindowCompat.setDecorFitsSystemWindows(window, false)
-
-            // 设置状态栏和导航栏图标颜色
             val insetsController = WindowCompat.getInsetsController(window, view)
             insetsController.isAppearanceLightStatusBars = !darkTheme
             insetsController.isAppearanceLightNavigationBars = !darkTheme

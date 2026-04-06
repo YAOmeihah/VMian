@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">VMian</string>
     <string name="accessibility_service_description">V免签保活服务：轻量级保活服务，提高应用后台运行稳定性。该服务不读取或处理用户数据，仅用于保持应用运行状态。</string>
-    <string name="main_title">V免签监控端</string>
+    <string name="main_title">VMian 控制台</string>
     <string name="permission_settings">权限设置</string>
     <string name="test_listener">检测监听</string>
     <string name="edit_config">修改配置</string>
@@ -21,17 +21,23 @@
     <string name="server_address_example">例如: https://vpay.test</string>
     <string name="server_address_supporting">示例：https://vmq.example.com</string>
     <string name="server_address_error">请输入带 http:// 或 https:// 的完整地址</string>
+    <string name="manual_config_host_hint">请输入完整监控地址，建议直接粘贴扫码得到的地址。</string>
     <string name="monitor_key_input">监控密钥</string>
     <string name="monitor_key_placeholder">请输入 monitorKey</string>
     <string name="monitor_key_supporting">密钥通常来自二维码路径末尾的一段字符串</string>
     <string name="monitor_key_error">监控密钥不能为空</string>
+    <string name="manual_config_key_hint">请输入扫码结果里的 monitorKey，前后空格会自动忽略。</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>
     <string name="current_status">当前状态</string>
+    <string name="main_primary_section">主控状态</string>
+    <string name="quick_actions_title">快捷操作</string>
+    <string name="config_snapshot_title">当前配置快照</string>
+    <string name="config_snapshot_subtitle">确认服务端地址和密钥是否已经就绪。</string>
     <string name="status_pending_setup">待配置</string>
     <string name="status_pending_permission">待补权限</string>
     <string name="status_ready">已就绪</string>
-    <string name="permission_title">权限设置</string>
+    <string name="permission_title">权限与诊断</string>
     <string name="back">返回</string>
     <string name="required_permissions">必需权限</string>
     <string name="required_permissions_subtitle">应用核心功能必需的权限</string>
@@ -63,7 +69,7 @@
     <string name="open_notification_settings">正在打开通知设置</string>
     <string name="open_accessibility_settings">正在打开无障碍设置</string>
     <string name="open_app_details">正在打开应用详情页</string>
-    <string name="logs_title">运行状态</string>
+    <string name="logs_title">运行工作区</string>
     <string name="log_tab_runtime">运行日志（%1$d/500）</string>
     <string name="log_tab_push">推送日志（%1$d/500）</string>
     <string name="log_follow_paused">已暂停跟随</string>

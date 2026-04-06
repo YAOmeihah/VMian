@@ -1,28 +1,23 @@
 package com.java.vmian.presentation.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -31,7 +26,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -55,6 +52,7 @@ import com.java.vmian.presentation.ui.components.ConfigInfoCard
 import com.java.vmian.presentation.ui.components.MainStatusCard
 import com.java.vmian.presentation.ui.components.ManualConfigDialog
 import com.java.vmian.presentation.ui.components.PermissionCheckDialog
+import com.java.vmian.presentation.ui.components.QuickActionsCard
 import com.java.vmian.presentation.ui.components.QrCodeScannerDialog
 import com.java.vmian.presentation.ui.components.SimplePermissionCheckDialog
 import com.java.vmian.presentation.ui.components.UnifiedLogDisplayCard
@@ -110,6 +108,17 @@ fun MainScreen(
     )
     val screenHeightDp = LocalConfiguration.current.screenHeightDp
     val logPanelHeight = LogPanelLayout.resolveCardHeightDp(screenHeightDp).dp
+    val topAppBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
+    val primaryAction = remember(screenModel.stage, uiState.isLoading) {
+        {
+            when (screenModel.stage) {
+                MainScreenStage.Setup -> showConfigMethodSheet = true
+                MainScreenStage.PermissionsRequired -> onNavigateToPermissions()
+                MainScreenStage.Ready -> if (!uiState.isLoading) viewModel.testHeartbeat()
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(200)
@@ -136,7 +145,22 @@ fun MainScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0)
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            LargeTopAppBar(
+                title = { Text(stringResource(R.string.main_title)) },
+                actions = {
+                    IconButton(onClick = onNavigateToPermissions) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = stringResource(R.string.permission_settings)
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior
+            )
+        }
     ) { innerPadding ->
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -147,108 +171,27 @@ fun MainScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
                     .navigationBarsPadding(),
-                contentPadding = PaddingValues(bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = stringResource(R.string.main_title),
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        IconButton(
-                            onClick = onNavigateToPermissions,
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.permission_settings),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
+                    MainStatusCard(
+                        model = screenModel,
+                        isLoading = uiState.isLoading,
+                        onPrimaryAction = primaryAction
+                    )
                 }
 
                 item {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        MainStatusCard(model = screenModel)
-                    }
+                    QuickActionsCard(
+                        onTestListener = { PermissionUtils.sendTestNotification(context) },
+                        onOpenPermissions = onNavigateToPermissions,
+                        onEditConfig = { showConfigMethodSheet = true }
+                    )
                 }
 
                 item {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                        ConfigInfoCard(config = uiState.config)
-                    }
-                }
-
-                item {
-                    Button(
-                        onClick = {
-                            when (screenModel.stage) {
-                                MainScreenStage.Setup -> showConfigMethodSheet = true
-                                MainScreenStage.PermissionsRequired -> onNavigateToPermissions()
-                                MainScreenStage.Ready -> viewModel.testHeartbeat()
-                            }
-                        },
-                        enabled = screenModel.stage != MainScreenStage.Ready || !uiState.isLoading,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        if (screenModel.stage == MainScreenStage.Ready && uiState.isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                color = MaterialTheme.colorScheme.onPrimary
-                            )
-                        } else {
-                            Text(screenModel.primaryActionLabel)
-                        }
-                    }
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { PermissionUtils.sendTestNotification(context) },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.test_listener))
-                        }
-
-                        OutlinedButton(
-                            onClick = onNavigateToPermissions,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.permission_settings))
-                        }
-                    }
-                }
-
-                if (uiState.isConfigured) {
-                    item {
-                        TextButton(
-                            onClick = { showConfigMethodSheet = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            Text(stringResource(R.string.edit_config))
-                        }
-                    }
+                    ConfigInfoCard(config = uiState.config)
                 }
 
                 item {
@@ -259,11 +202,9 @@ fun MainScreen(
                         onClearPushLogs = { viewModel.clearPushLogs() },
                         panelHeight = logPanelHeight,
                         modifier = Modifier
-                            .padding(horizontal = 16.dp)
                             .navigationBarsPadding()
                     )
                 }
-
             }
         }
     }

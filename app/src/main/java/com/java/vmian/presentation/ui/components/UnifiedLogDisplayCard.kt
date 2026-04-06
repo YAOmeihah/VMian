@@ -80,8 +80,8 @@ fun UnifiedLogDisplayCard(
             .fillMaxWidth()
             .height(panelHeight),
         shape = RoundedCornerShape(16.dp),
-        colors = AppCardDefaults.colors(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = AppCardDefaults.workspaceColors(),
+        elevation = AppCardDefaults.sectionElevation()
     ) {
         val bodyHeight = LogPanelLayout.resolveBodyHeightDp(panelHeight.value.toInt()).dp
 

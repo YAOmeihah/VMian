@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.java.vmian.R
@@ -34,9 +35,9 @@ fun PermissionItemCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = AppCardDefaults.colors(),
+        colors = AppCardDefaults.infoColors(),
         shape = MaterialTheme.shapes.medium,
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        elevation = AppCardDefaults.sectionElevation()
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -96,7 +97,8 @@ fun PermissionItemCard(
                                 text = permission.description,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
