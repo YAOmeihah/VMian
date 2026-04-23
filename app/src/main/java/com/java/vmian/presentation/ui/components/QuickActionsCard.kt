@@ -23,6 +23,7 @@ fun QuickActionsCard(
     onTestListener: () -> Unit,
     onOpenPermissions: () -> Unit,
     onEditConfig: () -> Unit,
+    onCheckUpdates: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -79,6 +80,19 @@ fun QuickActionsCard(
             ) {
                 Text(
                     text = stringResource(R.string.permission_settings),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            OutlinedButton(
+                onClick = onCheckUpdates,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 44.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.check_updates),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

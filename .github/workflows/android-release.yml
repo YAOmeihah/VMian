@@ -60,6 +60,13 @@ jobs:
         run: |
           test -f app/build/outputs/apk/release/app-release.apk
 
+      - name: Prepare versioned APK asset
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSIONED_APK="$RUNNER_TEMP/vmian-${GITHUB_REF_NAME}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$VERSIONED_APK"
+          echo "VERSIONED_APK=$VERSIONED_APK" >> $GITHUB_ENV
+
       - name: Upload release APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -71,6 +78,58 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          files: ${{ env.VERSIONED_APK }}
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      - name: Read generated release metadata
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --json body,publishedAt > "$RUNNER_TEMP/release-view.json"
+
+      - name: Generate update.json
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION_CODE=$(python - <<'PY'
+          import json
+          with open("app/build/outputs/apk/release/output-metadata.json", "r", encoding="utf-8") as fh:
+              metadata = json.load(fh)
+          print(metadata["elements"][0]["versionCode"])
+          PY
+          )
+          VERSION_NAME=$(python - <<'PY'
+          import json
+          with open("app/build/outputs/apk/release/output-metadata.json", "r", encoding="utf-8") as fh:
+              metadata = json.load(fh)
+          print(metadata["elements"][0]["versionName"])
+          PY
+          )
+          SHA256=$(python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+
+          apk_path = Path(os.environ["VERSIONED_APK"])
+          print(hashlib.sha256(apk_path.read_bytes()).hexdigest())
+          PY
+          )
+          python scripts/generate_update_manifest.py \
+            --version-code "$VERSION_CODE" \
+            --version-name "$VERSION_NAME" \
+            --tag "${GITHUB_REF_NAME}" \
+            --apk-url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/$(basename "${VERSIONED_APK}")" \
+            --sha256 "$SHA256" \
+            --release-json "$RUNNER_TEMP/release-view.json" \
+            --output "$RUNNER_TEMP/update.json"
+
+      - name: Upload update manifest
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" "$RUNNER_TEMP/update.json" \
+            --repo "${GITHUB_REPOSITORY}" --clobber
