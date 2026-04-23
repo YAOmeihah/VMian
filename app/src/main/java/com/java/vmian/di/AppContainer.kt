@@ -5,14 +5,23 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.java.vmian.data.remote.PaymentApiService
+import com.java.vmian.data.remote.GitHubReleaseApiService
+import com.java.vmian.data.repository.AppUpdatePreferencesRepositoryImpl
+import com.java.vmian.data.repository.AppUpdateRepositoryImpl
 import com.java.vmian.data.repository.ConfigRepositoryImpl
 import com.java.vmian.data.repository.LogRepositoryImpl
 import com.java.vmian.data.repository.PaymentRepositoryImpl
+import com.java.vmian.domain.repository.AppUpdatePreferencesRepository
+import com.java.vmian.domain.repository.AppUpdateRepository
 import com.java.vmian.domain.repository.ConfigRepository
 import com.java.vmian.domain.repository.LogRepository
 import com.java.vmian.domain.repository.PaymentRepository
+import com.java.vmian.domain.usecase.CheckForUpdateUseCase
 import com.java.vmian.domain.usecase.ConfigUseCase
+import com.java.vmian.domain.usecase.GetStoredUpdateStateUseCase
+import com.java.vmian.domain.usecase.IgnoreUpdateVersionUseCase
 import com.java.vmian.domain.usecase.PaymentUseCase
+import com.java.vmian.BuildConfig
 import com.java.vmian.util.LogManager
 import com.java.vmian.util.PushLogManager
 import okhttp3.OkHttpClient
@@ -47,9 +56,21 @@ class AppContainer(private val context: Context) {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
+
+    private val gitHubRetrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.github.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
     
     private val paymentApiService: PaymentApiService by lazy {
         retrofit.create(PaymentApiService::class.java)
+    }
+
+    private val gitHubReleaseApiService: GitHubReleaseApiService by lazy {
+        gitHubRetrofit.create(GitHubReleaseApiService::class.java)
     }
     
     // Repositories
@@ -63,6 +84,18 @@ class AppContainer(private val context: Context) {
 
     val paymentRepository: PaymentRepository by lazy {
         PaymentRepositoryImpl(paymentApiService, configRepository)
+    }
+
+    val appUpdatePreferencesRepository: AppUpdatePreferencesRepository by lazy {
+        AppUpdatePreferencesRepositoryImpl(context.dataStore)
+    }
+
+    val appUpdateRepository: AppUpdateRepository by lazy {
+        AppUpdateRepositoryImpl(
+            apiService = gitHubReleaseApiService,
+            owner = BuildConfig.GITHUB_REPO_OWNER,
+            repo = BuildConfig.GITHUB_REPO_NAME
+        )
     }
     
     // Log Managers
@@ -81,5 +114,17 @@ class AppContainer(private val context: Context) {
 
     val paymentUseCase: PaymentUseCase by lazy {
         PaymentUseCase(paymentRepository, configRepository)
+    }
+
+    val checkForUpdateUseCase: CheckForUpdateUseCase by lazy {
+        CheckForUpdateUseCase(appUpdateRepository, appUpdatePreferencesRepository)
+    }
+
+    val ignoreUpdateVersionUseCase: IgnoreUpdateVersionUseCase by lazy {
+        IgnoreUpdateVersionUseCase(appUpdatePreferencesRepository)
+    }
+
+    val getStoredUpdateStateUseCase: GetStoredUpdateStateUseCase by lazy {
+        GetStoredUpdateStateUseCase(appUpdatePreferencesRepository)
     }
 }
