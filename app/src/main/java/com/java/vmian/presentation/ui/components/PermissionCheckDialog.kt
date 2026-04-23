@@ -9,7 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -30,6 +30,9 @@ fun PermissionCheckDialog(
     onNeverRemind: () -> Unit,
     showNeverRemindOption: Boolean = true
 ) {
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val permissionListMaxHeight = minOf(screenHeight * 0.5f, 360.dp)
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -86,40 +89,13 @@ fun PermissionCheckDialog(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 200.dp)
-                            .padding(16.dp),
+                            .heightIn(max = permissionListMaxHeight),
+                        contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(missingPermissions) { permission ->
                             MissingPermissionItem(permission = permission)
                         }
-                    }
-                }
-
-                // 重要性说明
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "为什么需要这些权限？",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = "• 通知监听权限：监听支付宝和微信的收款通知\n" +
-                                    "• 通知权限：显示前台服务保持应用运行\n" +
-                                    "• 电池优化白名单：防止系统杀死后台服务",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
                     }
                 }
 
