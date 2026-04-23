@@ -52,6 +52,10 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        buildConfigField("String", "GITHUB_REPO_OWNER", "\"YAOmeihah\"")
+        buildConfigField("String", "GITHUB_REPO_NAME", "\"VMian\"")
+        buildConfigField("long", "UPDATE_CHECK_COOLDOWN_MS", "43200000L")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -75,6 +79,7 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
