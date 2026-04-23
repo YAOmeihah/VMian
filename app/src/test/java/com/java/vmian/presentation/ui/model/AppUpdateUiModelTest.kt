@@ -9,7 +9,7 @@ import org.junit.Test
 class AppUpdateUiModelTest {
 
     @Test
-    fun from_returnsDownloadingModel_withPercentSpeedAndEta() {
+    fun from_returnsDownloadingModel_withRoundedEtaAndDialogActions() {
         val model = AppUpdateUiModel.from(
             AppUpdateState.Downloading(
                 info = AppUpdateInfo(
@@ -25,14 +25,28 @@ class AppUpdateUiModelTest {
                 totalBytes = 5_000_000L,
                 progressPercent = 40,
                 bytesPerSecond = 1_000_000L,
-                etaSeconds = 3L,
+                etaSeconds = 8L,
                 filePath = "/tmp/app.apk"
             )
         )
 
         assertEquals("正在下载更新", model.title)
+        assertEquals("关闭后会继续在通知栏下载", model.body)
         assertEquals("40%", model.progressLabel)
         assertTrue(model.speedLabel.orEmpty().contains("MB/s"))
-        assertTrue(model.etaLabel.orEmpty().contains("3"))
+        assertEquals("约 10 秒", model.etaLabel)
+        assertEquals("后台继续", model.primaryActionLabel)
+        assertEquals("取消下载", model.secondaryActionLabel)
+    }
+
+    @Test
+    fun from_returnsFailedModel_withRetryAndCloseActions() {
+        val model = AppUpdateUiModel.from(
+            AppUpdateState.Failed(message = "下载失败")
+        )
+
+        assertEquals("更新失败", model.title)
+        assertEquals("重新下载", model.primaryActionLabel)
+        assertEquals("关闭", model.secondaryActionLabel)
     }
 }

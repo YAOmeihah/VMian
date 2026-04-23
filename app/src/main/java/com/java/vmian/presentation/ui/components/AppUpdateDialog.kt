@@ -2,9 +2,11 @@ package com.java.vmian.presentation.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -17,8 +19,8 @@ import com.java.vmian.presentation.ui.model.AppUpdateUiModel
 @Composable
 fun AppUpdateDialog(
     state: AppUpdateState,
-    onConfirm: () -> Unit,
-    onIgnore: () -> Unit,
+    onPrimaryAction: (() -> Unit)?,
+    onSecondaryAction: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
     val model = AppUpdateUiModel.from(state)
@@ -35,16 +37,45 @@ fun AppUpdateDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+                if (state is AppUpdateState.Downloading) {
+                    LinearProgressIndicator(
+                        progress = { state.progressPercent / 100f },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = model.progressLabel.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = model.speedLabel.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = model.etaLabel.orEmpty(),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(model.primaryActionLabel ?: "确定")
+            if (model.primaryActionLabel != null && onPrimaryAction != null) {
+                TextButton(onClick = onPrimaryAction) {
+                    Text(model.primaryActionLabel)
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onIgnore) {
-                Text(model.secondaryActionLabel ?: "稍后")
+            if (model.secondaryActionLabel != null && onSecondaryAction != null) {
+                TextButton(onClick = onSecondaryAction) {
+                    Text(model.secondaryActionLabel)
+                }
             }
         }
     )

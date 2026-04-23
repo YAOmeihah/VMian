@@ -22,7 +22,7 @@ data class AppUpdateUiModel(
             )
             is AppUpdateState.Downloading -> AppUpdateUiModel(
                 title = "正在下载更新",
-                body = "下载将在后台继续",
+                body = "关闭后会继续在通知栏下载",
                 progressLabel = "${state.progressPercent}%",
                 speedLabel = formatSpeed(state.bytesPerSecond),
                 etaLabel = formatEta(state.etaSeconds),
@@ -45,7 +45,8 @@ data class AppUpdateUiModel(
             is AppUpdateState.Failed -> AppUpdateUiModel(
                 title = "更新失败",
                 body = state.message,
-                primaryActionLabel = "重新下载"
+                primaryActionLabel = "重新下载",
+                secondaryActionLabel = "关闭"
             )
             AppUpdateState.Checking -> AppUpdateUiModel(
                 title = "正在检查更新",
@@ -62,7 +63,19 @@ data class AppUpdateUiModel(
 
         private fun formatEta(etaSeconds: Long?): String? {
             etaSeconds ?: return null
-            return "约 ${etaSeconds}s"
+            val roundedSeconds = roundEtaSeconds(etaSeconds)
+            val minutes = roundedSeconds / 60
+            val seconds = roundedSeconds % 60
+            return when {
+                minutes > 0 && seconds > 0 -> "约 ${minutes} 分 ${seconds} 秒"
+                minutes > 0 -> "约 ${minutes} 分钟"
+                else -> "约 ${seconds} 秒"
+            }
+        }
+
+        private fun roundEtaSeconds(etaSeconds: Long): Long {
+            val step = if (etaSeconds < 60) 5L else 10L
+            return ((etaSeconds + step - 1) / step) * step
         }
     }
 }

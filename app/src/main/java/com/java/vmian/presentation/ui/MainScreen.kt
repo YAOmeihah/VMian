@@ -52,12 +52,12 @@ import com.java.vmian.presentation.ui.components.ConfigInfoCard
 import com.java.vmian.presentation.ui.components.MainStatusCard
 import com.java.vmian.presentation.ui.components.ManualConfigDialog
 import com.java.vmian.presentation.ui.components.AppUpdateDialog
-import com.java.vmian.presentation.ui.components.AppUpdateStatusCard
 import com.java.vmian.presentation.ui.components.PermissionCheckDialog
 import com.java.vmian.presentation.ui.components.QuickActionsCard
 import com.java.vmian.presentation.ui.components.QrCodeScannerDialog
 import com.java.vmian.presentation.ui.components.SimplePermissionCheckDialog
 import com.java.vmian.presentation.ui.components.UnifiedLogDisplayCard
+import com.java.vmian.presentation.ui.model.AppUpdateDialogBehavior
 import com.java.vmian.presentation.ui.model.LogPanelLayout
 import com.java.vmian.presentation.ui.model.MainScreenStage
 import com.java.vmian.presentation.ui.model.MainScreenUiModel
@@ -104,6 +104,9 @@ fun MainScreen(
     var showSimplePermissionDialog by remember { mutableStateOf(false) }
     var missingPermissions by remember { mutableStateOf<List<com.java.vmian.domain.model.PermissionInfo>>(emptyList()) }
     var missingPermissionCount by remember { mutableStateOf(0) }
+    var showUpdateDialog by remember { mutableStateOf(false) }
+    var suppressDownloadingDialog by remember { mutableStateOf(false) }
+    var previousUpdateState by remember { mutableStateOf<AppUpdateState?>(null) }
 
     val permissionCheckManager = remember { PermissionCheckManager(context) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -147,6 +150,27 @@ fun MainScreen(
                 }
             }
         }
+    }
+
+    LaunchedEffect(uiState.updateState) {
+        if (uiState.updateState !is AppUpdateState.Downloading) {
+            suppressDownloadingDialog = false
+        }
+
+        if (AppUpdateDialogBehavior.shouldAutoShowDialog(
+                previousState = previousUpdateState,
+                currentState = uiState.updateState,
+                suppressDownloadingDialog = suppressDownloadingDialog
+            )
+        ) {
+            showUpdateDialog = true
+        } else if (AppUpdateDialogBehavior.stageOf(uiState.updateState) ==
+            com.java.vmian.presentation.ui.model.AppUpdateDialogStage.None
+        ) {
+            showUpdateDialog = false
+        }
+
+        previousUpdateState = uiState.updateState
     }
 
     Scaffold(
@@ -205,27 +229,6 @@ fun MainScreen(
                     )
                 }
 
-                if (uiState.updateState is AppUpdateState.Downloading ||
-                    uiState.updateState is AppUpdateState.Downloaded ||
-                    uiState.updateState is AppUpdateState.Failed ||
-                    uiState.updateState is AppUpdateState.Installing
-                ) {
-                    item {
-                        AppUpdateStatusCard(
-                            state = uiState.updateState,
-                            onPrimaryAction = {
-                                when (uiState.updateState) {
-                                    is AppUpdateState.Failed -> viewModel.retryUpdateDownload(context)
-                                    is AppUpdateState.Downloaded,
-                                    is AppUpdateState.Installing -> viewModel.installDownloadedUpdate(context)
-                                    else -> Unit
-                                }
-                            },
-                            onSecondaryAction = { viewModel.cancelUpdateDownload() }
-                        )
-                    }
-                }
-
                 item {
                     ConfigInfoCard(config = uiState.config)
                 }
@@ -245,12 +248,46 @@ fun MainScreen(
         }
     }
 
-    if (uiState.updateState is AppUpdateState.UpdateAvailable) {
+    if (showUpdateDialog &&
+        AppUpdateDialogBehavior.stageOf(uiState.updateState) !=
+        com.java.vmian.presentation.ui.model.AppUpdateDialogStage.None
+    ) {
         AppUpdateDialog(
             state = uiState.updateState,
-            onConfirm = { viewModel.startUpdateDownload(context) },
-            onIgnore = { viewModel.ignoreCurrentUpdate() },
-            onDismiss = { viewModel.dismissUpdatePrompt() }
+            onPrimaryAction = {
+                when (uiState.updateState) {
+                    is AppUpdateState.UpdateAvailable -> viewModel.startUpdateDownload(context)
+                    is AppUpdateState.Downloading -> {
+                        suppressDownloadingDialog = true
+                        showUpdateDialog = false
+                    }
+                    is AppUpdateState.Downloaded,
+                    is AppUpdateState.Installing -> viewModel.installDownloadedUpdate(context)
+                    is AppUpdateState.Failed -> viewModel.retryUpdateDownload(context)
+                    else -> Unit
+                }
+            },
+            onSecondaryAction = {
+                when (uiState.updateState) {
+                    is AppUpdateState.UpdateAvailable -> viewModel.ignoreCurrentUpdate()
+                    is AppUpdateState.Downloading -> {
+                        showUpdateDialog = false
+                        viewModel.cancelUpdateDownload(context)
+                    }
+                    is AppUpdateState.Failed -> showUpdateDialog = false
+                    else -> Unit
+                }
+            },
+            onDismiss = {
+                when (uiState.updateState) {
+                    is AppUpdateState.UpdateAvailable -> viewModel.dismissUpdatePrompt()
+                    is AppUpdateState.Downloading -> {
+                        suppressDownloadingDialog = true
+                        showUpdateDialog = false
+                    }
+                    else -> showUpdateDialog = false
+                }
+            }
         )
     }
 

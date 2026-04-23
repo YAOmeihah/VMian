@@ -6,24 +6,43 @@ data class DownloadMetrics(
     val etaSeconds: Long?
 )
 
-class DownloadMetricsCalculator {
-    private var lastBytes: Long = 0L
-    private var lastTimestampMs: Long = 0L
+class DownloadMetricsCalculator(
+    private val minMetricsRefreshIntervalMs: Long = 900L
+) {
+    private var windowStartBytes: Long = 0L
+    private var windowStartTimestampMs: Long = 0L
     private var smoothedBytesPerSecond: Double = 0.0
+    private var lastEtaSeconds: Long? = null
 
     fun recordSample(downloadedBytes: Long, totalBytes: Long, nowMs: Long): DownloadMetrics {
-        val deltaBytes = downloadedBytes - lastBytes
-        val deltaTimeMs = (nowMs - lastTimestampMs).coerceAtLeast(1L)
-        val instantSpeed = deltaBytes * 1000.0 / deltaTimeMs
-        smoothedBytesPerSecond =
-            if (smoothedBytesPerSecond == 0.0) instantSpeed
-            else (smoothedBytesPerSecond * 0.7) + (instantSpeed * 0.3)
-        lastBytes = downloadedBytes
-        lastTimestampMs = nowMs
-
         val progress = if (totalBytes <= 0) 0 else ((downloadedBytes * 100) / totalBytes).toInt()
-        val remainingBytes = (totalBytes - downloadedBytes).coerceAtLeast(0L)
-        val eta = if (smoothedBytesPerSecond <= 0.0) null else (remainingBytes / smoothedBytesPerSecond).toLong()
-        return DownloadMetrics(progress, smoothedBytesPerSecond.toLong(), eta)
+        if (windowStartTimestampMs == 0L) {
+            windowStartBytes = downloadedBytes
+            windowStartTimestampMs = nowMs
+            return DownloadMetrics(progress, bytesPerSecond = 0L, etaSeconds = null)
+        }
+
+        val shouldRefreshMetrics =
+            nowMs - windowStartTimestampMs >= minMetricsRefreshIntervalMs ||
+                downloadedBytes >= totalBytes
+
+        if (shouldRefreshMetrics) {
+            val deltaBytes = downloadedBytes - windowStartBytes
+            val deltaTimeMs = (nowMs - windowStartTimestampMs).coerceAtLeast(1L)
+            val instantSpeed = deltaBytes * 1000.0 / deltaTimeMs
+            smoothedBytesPerSecond =
+                if (smoothedBytesPerSecond == 0.0) instantSpeed
+                else (smoothedBytesPerSecond * 0.7) + (instantSpeed * 0.3)
+
+            val remainingBytes = (totalBytes - downloadedBytes).coerceAtLeast(0L)
+            lastEtaSeconds =
+                if (smoothedBytesPerSecond <= 0.0) null
+                else (remainingBytes / smoothedBytesPerSecond).toLong()
+
+            windowStartBytes = downloadedBytes
+            windowStartTimestampMs = nowMs
+        }
+
+        return DownloadMetrics(progress, smoothedBytesPerSecond.toLong(), lastEtaSeconds)
     }
 }

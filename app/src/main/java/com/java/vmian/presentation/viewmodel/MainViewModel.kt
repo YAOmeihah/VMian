@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.core.content.ContextCompat
 import com.java.vmian.domain.model.ApiResponse
 import com.java.vmian.domain.model.AppUpdateState
 import com.java.vmian.domain.model.PaymentConfig
@@ -240,16 +241,20 @@ class MainViewModel(
     }
 
     fun startUpdateDownload(context: Context) {
-        val intent = Intent(context, AppUpdateDownloadService::class.java)
-        context.startService(intent)
+        ContextCompat.startForegroundService(
+            context,
+            AppUpdateDownloadService.createStartIntent(context)
+        )
     }
 
     fun retryUpdateDownload(context: Context) {
         startUpdateDownload(context)
     }
 
-    fun cancelUpdateDownload() {
-        appUpdateCoordinator.onDownloadFailed("下载已取消")
+    fun cancelUpdateDownload(context: Context) {
+        context.startService(AppUpdateDownloadService.createCancelIntent(context))
+        appUpdateCoordinator.reset()
+        _uiState.update { it.copy(message = "已取消下载") }
     }
 
     fun installDownloadedUpdate(context: Context) {
