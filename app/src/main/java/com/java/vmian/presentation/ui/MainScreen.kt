@@ -51,6 +51,8 @@ import com.java.vmian.VmqApplication
 import com.java.vmian.presentation.ui.components.ConfigInfoCard
 import com.java.vmian.presentation.ui.components.MainStatusCard
 import com.java.vmian.presentation.ui.components.ManualConfigDialog
+import com.java.vmian.presentation.ui.components.AppUpdateDialog
+import com.java.vmian.presentation.ui.components.AppUpdateStatusCard
 import com.java.vmian.presentation.ui.components.PermissionCheckDialog
 import com.java.vmian.presentation.ui.components.QuickActionsCard
 import com.java.vmian.presentation.ui.components.QrCodeScannerDialog
@@ -61,6 +63,7 @@ import com.java.vmian.presentation.ui.model.MainScreenStage
 import com.java.vmian.presentation.ui.model.MainScreenUiModel
 import com.java.vmian.presentation.viewmodel.MainViewModel
 import com.java.vmian.presentation.viewmodel.MainViewModelFactory
+import com.java.vmian.domain.model.AppUpdateState
 import com.java.vmian.util.PermissionCheckManager
 import com.java.vmian.util.PermissionCheckResult
 import com.java.vmian.util.PermissionCheckUtils
@@ -81,7 +84,10 @@ fun MainScreen(
             application.container.configUseCase,
             application.container.paymentUseCase,
             application.container.logManager,
-            application.container.pushLogManager
+            application.container.pushLogManager,
+            application.container.checkForUpdateUseCase,
+            application.container.ignoreUpdateVersionUseCase,
+            com.java.vmian.update.AppUpdateCoordinator
         )
     )
     val uiState by viewModel.uiState.collectAsState()
@@ -122,6 +128,7 @@ fun MainScreen(
 
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(200)
+        viewModel.checkForUpdates(manual = false)
 
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val result = PermissionCheckUtils.checkPermissions(context)
@@ -193,8 +200,30 @@ fun MainScreen(
                     QuickActionsCard(
                         onTestListener = { PermissionUtils.sendTestNotification(context) },
                         onOpenPermissions = onNavigateToPermissions,
-                        onEditConfig = { showConfigMethodSheet = true }
+                        onEditConfig = { showConfigMethodSheet = true },
+                        onCheckUpdates = { viewModel.checkForUpdates(manual = true) }
                     )
+                }
+
+                if (uiState.updateState is AppUpdateState.Downloading ||
+                    uiState.updateState is AppUpdateState.Downloaded ||
+                    uiState.updateState is AppUpdateState.Failed ||
+                    uiState.updateState is AppUpdateState.Installing
+                ) {
+                    item {
+                        AppUpdateStatusCard(
+                            state = uiState.updateState,
+                            onPrimaryAction = {
+                                when (uiState.updateState) {
+                                    is AppUpdateState.Failed -> viewModel.retryUpdateDownload(context)
+                                    is AppUpdateState.Downloaded,
+                                    is AppUpdateState.Installing -> viewModel.installDownloadedUpdate(context)
+                                    else -> Unit
+                                }
+                            },
+                            onSecondaryAction = { viewModel.cancelUpdateDownload() }
+                        )
+                    }
                 }
 
                 item {
@@ -214,6 +243,15 @@ fun MainScreen(
                 }
             }
         }
+    }
+
+    if (uiState.updateState is AppUpdateState.UpdateAvailable) {
+        AppUpdateDialog(
+            state = uiState.updateState,
+            onConfirm = { viewModel.startUpdateDownload(context) },
+            onIgnore = { viewModel.ignoreCurrentUpdate() },
+            onDismiss = { viewModel.dismissUpdatePrompt() }
+        )
     }
 
     if (showQrScanner) {

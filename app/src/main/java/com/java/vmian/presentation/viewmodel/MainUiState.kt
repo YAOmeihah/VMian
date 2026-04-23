@@ -1,6 +1,7 @@
 package com.java.vmian.presentation.viewmodel
 
 import com.java.vmian.domain.model.LogEntry
+import com.java.vmian.domain.model.AppUpdateState
 import com.java.vmian.domain.model.PaymentConfig
 import com.java.vmian.domain.model.PushLogEntry
 
@@ -13,5 +14,6 @@ data class MainUiState(
     val isLoading: Boolean = false,
     val message: String? = null,
     val logs: List<LogEntry> = emptyList(),
-    val pushLogs: List<PushLogEntry> = emptyList()
+    val pushLogs: List<PushLogEntry> = emptyList(),
+    val updateState: AppUpdateState = AppUpdateState.Idle
 )

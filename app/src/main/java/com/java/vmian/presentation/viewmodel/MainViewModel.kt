@@ -1,12 +1,19 @@
 package com.java.vmian.presentation.viewmodel
 
 import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.java.vmian.domain.model.ApiResponse
+import com.java.vmian.domain.model.AppUpdateState
 import com.java.vmian.domain.model.PaymentConfig
+import com.java.vmian.domain.model.UpdateCheckResult
+import com.java.vmian.domain.usecase.CheckForUpdateUseCase
 import com.java.vmian.domain.usecase.ConfigUseCase
+import com.java.vmian.domain.usecase.IgnoreUpdateVersionUseCase
 import com.java.vmian.domain.usecase.PaymentUseCase
+import com.java.vmian.service.AppUpdateDownloadService
+import com.java.vmian.update.AppUpdateCoordinator
 import com.java.vmian.util.HeartbeatScheduler
 import com.java.vmian.util.HeartbeatTestHelper
 import com.java.vmian.util.LogManager
@@ -24,7 +31,10 @@ class MainViewModel(
     private val configUseCase: ConfigUseCase,
     private val paymentUseCase: PaymentUseCase,
     private val logManager: LogManager,
-    private val pushLogManager: PushLogManager
+    private val pushLogManager: PushLogManager,
+    private val checkForUpdateUseCase: CheckForUpdateUseCase,
+    private val ignoreUpdateVersionUseCase: IgnoreUpdateVersionUseCase,
+    private val appUpdateCoordinator: AppUpdateCoordinator
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -33,6 +43,7 @@ class MainViewModel(
     init {
         observeLogs()
         observePushLogs()
+        observeUpdateState()
         logManager.logSystem("应用启动")
         // 初始化时加载配置
         loadConfig()
@@ -56,6 +67,14 @@ class MainViewModel(
         viewModelScope.launch {
             pushLogManager.logs.collect { pushLogs ->
                 _uiState.update { it.copy(pushLogs = pushLogs) }
+            }
+        }
+    }
+
+    private fun observeUpdateState() {
+        viewModelScope.launch {
+            appUpdateCoordinator.state.collect { updateState ->
+                _uiState.update { it.copy(updateState = updateState) }
             }
         }
     }
@@ -167,6 +186,84 @@ class MainViewModel(
      */
     fun clearMessage() {
         _uiState.update { it.copy(message = null) }
+    }
+
+    fun checkForUpdates(manual: Boolean) {
+        viewModelScope.launch {
+            if (manual) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
+            appUpdateCoordinator.markChecking()
+            when (val result = checkForUpdateUseCase(manual)) {
+                is UpdateCheckResult.Available -> {
+                    appUpdateCoordinator.setAvailable(result.info)
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+                UpdateCheckResult.UpToDate -> {
+                    appUpdateCoordinator.reset()
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            message = if (manual) "当前已是最新版本" else it.message
+                        )
+                    }
+                }
+                is UpdateCheckResult.Failed -> {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            message = if (manual) result.message else it.message
+                        )
+                    }
+                    appUpdateCoordinator.onDownloadFailed(result.message)
+                }
+                UpdateCheckResult.SkippedByCooldown -> {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+            }
+        }
+    }
+
+    fun ignoreCurrentUpdate() {
+        viewModelScope.launch {
+            val updateState = uiState.value.updateState
+            if (updateState is AppUpdateState.UpdateAvailable) {
+                ignoreUpdateVersionUseCase(updateState.info.versionCode)
+            }
+            appUpdateCoordinator.reset()
+            _uiState.update { it.copy(message = "已忽略当前版本") }
+        }
+    }
+
+    fun dismissUpdatePrompt() {
+        appUpdateCoordinator.reset()
+    }
+
+    fun startUpdateDownload(context: Context) {
+        val intent = Intent(context, AppUpdateDownloadService::class.java)
+        context.startService(intent)
+    }
+
+    fun retryUpdateDownload(context: Context) {
+        startUpdateDownload(context)
+    }
+
+    fun cancelUpdateDownload() {
+        appUpdateCoordinator.onDownloadFailed("下载已取消")
+    }
+
+    fun installDownloadedUpdate(context: Context) {
+        val state = uiState.value.updateState
+        val filePath = when (state) {
+            is AppUpdateState.Downloaded -> state.filePath
+            is AppUpdateState.Installing -> state.filePath
+            else -> null
+        } ?: return
+        context.startActivity(
+            com.java.vmian.update.AppUpdateIntentFactory.createInstallerActivityIntent(context, filePath).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        )
     }
 
     /**

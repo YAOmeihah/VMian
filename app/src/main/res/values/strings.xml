@@ -5,6 +5,7 @@
     <string name="permission_settings">权限设置</string>
     <string name="test_listener">检测监听</string>
     <string name="edit_config">修改配置</string>
+    <string name="check_updates">检查更新</string>
     <string name="config_method_title">选择配置方式</string>
     <string name="config_method_hint">优先推荐扫码配置，输入更快也更不容易出错。</string>
     <string name="scan_config">扫码配置</string>

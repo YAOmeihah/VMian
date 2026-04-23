@@ -14,10 +14,17 @@ object AppUpdateCoordinator {
     val state: StateFlow<AppUpdateState> = mutableState.asStateFlow()
 
     private var pendingUpdateInfo: AppUpdateInfo? = null
+    private var metricsCalculator = DownloadMetricsCalculator()
 
     fun setAvailable(info: AppUpdateInfo) {
         pendingUpdateInfo = info
         mutableState.value = AppUpdateState.UpdateAvailable(info)
+    }
+
+    fun reset() {
+        pendingUpdateInfo = null
+        metricsCalculator = DownloadMetricsCalculator()
+        mutableState.value = AppUpdateState.Idle
     }
 
     fun requirePendingUpdate(): AppUpdateInfo {
@@ -26,7 +33,7 @@ object AppUpdateCoordinator {
 
     fun onDownloadProgress(info: AppUpdateInfo, file: File, downloadedBytes: Long, totalBytes: Long) {
         pendingUpdateInfo = info
-        val metrics = DownloadMetricsCalculator().recordSample(downloadedBytes, totalBytes, System.currentTimeMillis())
+        val metrics = metricsCalculator.recordSample(downloadedBytes, totalBytes, System.currentTimeMillis())
         mutableState.value = AppUpdateState.Downloading(
             info = info,
             downloadedBytes = downloadedBytes,
@@ -55,6 +62,10 @@ object AppUpdateCoordinator {
 
     fun onDownloadFailed(message: String) {
         mutableState.value = AppUpdateState.Failed(message)
+    }
+
+    fun markChecking() {
+        mutableState.value = AppUpdateState.Checking
     }
 
     fun requestInstallOrNotify(context: Context, info: AppUpdateInfo, file: File) {
