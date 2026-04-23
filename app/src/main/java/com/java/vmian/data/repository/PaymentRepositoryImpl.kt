@@ -16,7 +16,11 @@ class PaymentRepositoryImpl(
     private val configRepository: ConfigRepository
 ) : PaymentRepository {
 
-    override suspend fun sendHeartbeat(timestamp: Long, sign: String): ApiResponse<String> {
+    override suspend fun sendHeartbeat(
+        terminalCode: String,
+        timestamp: Long,
+        sign: String
+    ): ApiResponse<String> {
         return try {
             val config = configRepository.getConfig()
             if (config == null) {
@@ -31,7 +35,7 @@ class PaymentRepositoryImpl(
             }
             val url = "$baseUrl/appHeart"
 
-            val response = apiService.sendHeartbeat(url, timestamp, sign)
+            val response = apiService.sendHeartbeat(url, terminalCode, timestamp, sign)
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body != null && body.isSuccess()) {
@@ -56,6 +60,7 @@ class PaymentRepositoryImpl(
 
             val url = SecureEndpointBuilder.build(config.host, "/appPush")
             val request = PushPaymentRequestDto(
+                terminalCode = payload.terminalCode,
                 type = payload.type,
                 amountCents = payload.amountCents,
                 ts = payload.timestamp,

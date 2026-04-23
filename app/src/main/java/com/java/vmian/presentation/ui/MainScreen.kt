@@ -228,8 +228,8 @@ fun MainScreen(
 
     if (showManualConfig) {
         ManualConfigDialog(
-            onConfigSaved = { host, monitorKey ->
-                viewModel.saveConfig(host, monitorKey)
+            onConfigSaved = { host, terminalCode, monitorKey ->
+                viewModel.saveConfig(host, terminalCode, monitorKey)
                 showManualConfig = false
             },
             onDismiss = { showManualConfig = false }

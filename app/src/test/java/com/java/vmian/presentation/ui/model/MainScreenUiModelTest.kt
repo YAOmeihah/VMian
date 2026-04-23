@@ -28,6 +28,7 @@ class MainScreenUiModelTest {
             uiState = MainUiState(
                 config = PaymentConfig(
                     host = "https://vmq.example",
+                    terminalCode = "terminal-a",
                     monitorKey = "secret",
                     isConfigured = true
                 ),
@@ -47,6 +48,7 @@ class MainScreenUiModelTest {
             uiState = MainUiState(
                 config = PaymentConfig(
                     host = "https://vmq.example",
+                    terminalCode = "terminal-a",
                     monitorKey = "secret",
                     isConfigured = true
                 ),

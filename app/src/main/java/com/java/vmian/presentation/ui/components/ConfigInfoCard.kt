@@ -67,6 +67,17 @@ fun ConfigInfoCard(config: PaymentConfig?) {
             }
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
+                    text = stringResource(R.string.terminal_code),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = config?.terminalCode ?: stringResource(R.string.config_terminal_empty),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
                     text = stringResource(R.string.monitor_key),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

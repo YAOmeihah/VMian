@@ -13,10 +13,12 @@
     <string name="configured">已配置</string>
     <string name="not_configured">未配置</string>
     <string name="monitor_host">监控地址</string>
+    <string name="terminal_code">终端编码</string>
     <string name="monitor_key">监控密钥</string>
     <string name="config_host_empty">请扫码或手动配置</string>
+    <string name="config_terminal_empty">尚未绑定终端</string>
     <string name="config_key_empty">尚未配置</string>
-    <string name="manual_config_hint">请输入完整服务器地址和监控密钥。推荐优先扫码，能减少手动输入错误。</string>
+    <string name="manual_config_hint">请输入完整服务器地址、终端编码和监控密钥。推荐优先扫码，能减少手动输入错误。</string>
     <string name="server_address">服务器地址</string>
     <string name="server_address_example">例如: https://vpay.test</string>
     <string name="server_address_supporting">示例：https://vmq.example.com</string>
@@ -27,6 +29,10 @@
     <string name="monitor_key_supporting">密钥通常来自二维码路径末尾的一段字符串</string>
     <string name="monitor_key_error">监控密钥不能为空</string>
     <string name="manual_config_key_hint">请输入扫码结果里的 monitorKey，前后空格会自动忽略。</string>
+    <string name="terminal_code_input">终端编码</string>
+    <string name="terminal_code_placeholder">例如: default-terminal</string>
+    <string name="terminal_code_error">终端编码不能为空</string>
+    <string name="manual_config_terminal_hint">请输入后台终端详情里的 terminalCode。</string>
     <string name="cancel">取消</string>
     <string name="save">保存</string>
     <string name="current_status">当前状态</string>

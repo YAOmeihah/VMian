@@ -20,6 +20,7 @@ interface PaymentApiService {
     @GET
     suspend fun sendHeartbeat(
         @Url url: String,
+        @Query("terminalCode") terminalCode: String,
         @Query("t") timestamp: Long,
         @Query("sign") sign: String
     ): Response<VmqApiResponse<Any?>>

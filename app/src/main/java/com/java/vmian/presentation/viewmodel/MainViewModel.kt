@@ -79,16 +79,21 @@ class MainViewModel(
     /**
      * 保存配置
      */
-    fun saveConfig(host: String, monitorKey: String) {
+    fun saveConfig(host: String, terminalCode: String, monitorKey: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val result = configUseCase.saveConfig(host, monitorKey)
+            val result = configUseCase.saveConfig(host, terminalCode, monitorKey)
             if (result.isSuccess) {
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        config = PaymentConfig(host.trim(), monitorKey.trim(), true),
+                        config = PaymentConfig(
+                            host = host.trim(),
+                            terminalCode = terminalCode.trim(),
+                            monitorKey = monitorKey.trim(),
+                            isConfigured = true
+                        ),
                         isConfigured = true,
                         message = "配置保存成功"
                     )
@@ -113,8 +118,8 @@ class MainViewModel(
     fun parseQrCode(qrContent: String) {
         val result = configUseCase.parseConfigFromQrCode(qrContent)
         if (result.isSuccess) {
-            val (host, monitorKey) = result.getOrThrow()
-            saveConfig(host, monitorKey)
+            val payload = result.getOrThrow()
+            saveConfig(payload.host, payload.terminalCode, payload.monitorKey)
         } else {
             _uiState.update {
                 it.copy(message = "二维码格式错误，请扫描正确的配置二维码")

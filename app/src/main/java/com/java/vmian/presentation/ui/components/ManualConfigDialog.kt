@@ -17,12 +17,14 @@ import com.java.vmian.R
  */
 @Composable
 fun ManualConfigDialog(
-    onConfigSaved: (String, String) -> Unit,
+    onConfigSaved: (String, String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var host by remember { mutableStateOf("") }
+    var terminalCode by remember { mutableStateOf("") }
     var key by remember { mutableStateOf("") }
     val trimmedHost = host.trim()
+    val trimmedTerminalCode = terminalCode.trim()
     val trimmedKey = key.trim()
     val hostError = remember(trimmedHost) {
         trimmedHost.isNotEmpty() &&
@@ -31,6 +33,9 @@ fun ManualConfigDialog(
     }
     val keyError = remember(trimmedKey, key) {
         key.isNotEmpty() && trimmedKey.isEmpty()
+    }
+    val terminalCodeError = remember(trimmedTerminalCode, terminalCode) {
+        terminalCode.isNotEmpty() && trimmedTerminalCode.isEmpty()
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -95,6 +100,25 @@ fun ManualConfigDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                OutlinedTextField(
+                    value = terminalCode,
+                    onValueChange = { terminalCode = it },
+                    label = { Text(stringResource(R.string.terminal_code_input)) },
+                    placeholder = { Text(stringResource(R.string.terminal_code_placeholder)) },
+                    supportingText = {
+                        Text(
+                            if (terminalCodeError) {
+                                stringResource(R.string.terminal_code_error)
+                            } else {
+                                stringResource(R.string.manual_config_terminal_hint)
+                            }
+                        )
+                    },
+                    isError = terminalCodeError,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -108,11 +132,20 @@ fun ManualConfigDialog(
 
                     Button(
                         onClick = {
-                            if (trimmedHost.isNotBlank() && trimmedKey.isNotBlank() && !hostError) {
-                                onConfigSaved(trimmedHost, trimmedKey)
+                            if (
+                                trimmedHost.isNotBlank() &&
+                                trimmedTerminalCode.isNotBlank() &&
+                                trimmedKey.isNotBlank() &&
+                                !hostError
+                            ) {
+                                onConfigSaved(trimmedHost, trimmedTerminalCode, trimmedKey)
                             }
                         },
-                        enabled = trimmedHost.isNotBlank() && trimmedKey.isNotBlank() && !hostError,
+                        enabled =
+                            trimmedHost.isNotBlank() &&
+                                trimmedTerminalCode.isNotBlank() &&
+                                trimmedKey.isNotBlank() &&
+                                !hostError,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.save))

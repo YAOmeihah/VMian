@@ -10,7 +10,7 @@ interface PaymentRepository {
     /**
      * 发送心跳
      */
-    suspend fun sendHeartbeat(timestamp: Long, sign: String): ApiResponse<String>
+    suspend fun sendHeartbeat(terminalCode: String, timestamp: Long, sign: String): ApiResponse<String>
     
     /**
      * 推送支付数据

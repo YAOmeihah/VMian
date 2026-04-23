@@ -17,7 +17,7 @@ class PaymentUseCaseTest {
     fun pushPayment_buildsSignedPayloadWithNonceAndEventId() = runBlocking {
         val paymentRepository = RecordingPaymentRepository()
         val configRepository = FixedConfigRepository(
-            PaymentConfig("https://example.com", "secret", true)
+            PaymentConfig("https://example.com", "terminal-a", "secret", true)
         )
         val useCase = PaymentUseCase(
             paymentRepository = paymentRepository,
@@ -40,21 +40,52 @@ class PaymentUseCaseTest {
 
         assertEquals(
             PaymentPushPayload(
+                terminalCode = "terminal-a",
                 type = 2,
                 amountCents = 1023L,
                 timestamp = 1710000000000L,
                 nonce = "nonce_123",
                 eventId = "evt_123",
-                sign = "725b13fe5235b39bb0051647a4e9f1edf3732839002303b3f71f06423974744a"
+                sign = "e36b63cd0318113fec11a54fe766d11e37be005bc465dea012ee40edf06cf6d2"
             ),
             paymentRepository.lastPayload
         )
     }
 
+    @Test
+    fun sendHeartbeat_usesTerminalCodeAndMonitorKeySignature() = runBlocking {
+        val paymentRepository = RecordingPaymentRepository()
+        val configRepository = FixedConfigRepository(
+            PaymentConfig("https://example.com", "terminal-a", "secret", true)
+        )
+        val useCase = PaymentUseCase(
+            paymentRepository = paymentRepository,
+            configRepository = configRepository,
+            currentTimeMillis = { 1710000000000L },
+            nonceFactory = { "nonce_123" }
+        )
+
+        useCase.sendHeartbeat()
+
+        assertEquals("terminal-a", paymentRepository.lastHeartbeatTerminalCode)
+        assertEquals(1710000000000L, paymentRepository.lastHeartbeatTimestamp)
+        assertEquals("6ff502c2e0fa13a9b5440a8ba44ff820", paymentRepository.lastHeartbeatSign)
+    }
+
     private class RecordingPaymentRepository : PaymentRepository {
         var lastPayload: PaymentPushPayload? = null
+        var lastHeartbeatTerminalCode: String? = null
+        var lastHeartbeatTimestamp: Long? = null
+        var lastHeartbeatSign: String? = null
 
-        override suspend fun sendHeartbeat(timestamp: Long, sign: String): ApiResponse<String> {
+        override suspend fun sendHeartbeat(
+            terminalCode: String,
+            timestamp: Long,
+            sign: String
+        ): ApiResponse<String> {
+            lastHeartbeatTerminalCode = terminalCode
+            lastHeartbeatTimestamp = timestamp
+            lastHeartbeatSign = sign
             return ApiResponse.Success("ok")
         }
 

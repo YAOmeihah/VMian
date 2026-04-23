@@ -27,7 +27,7 @@ class PaymentUseCase(
         val config = configRepository.getConfig() ?: return ApiResponse.Error("配置未设置")
         val timestamp = currentTimeMillis()
         val sign = CryptoUtils.generateMd5("$timestamp${config.monitorKey}")
-        return paymentRepository.sendHeartbeat(timestamp, sign)
+        return paymentRepository.sendHeartbeat(config.terminalCode, timestamp, sign)
     }
 
     /**
@@ -39,11 +39,12 @@ class PaymentUseCase(
         val nonce = nonceFactory()
         val amountCents = MoneyUtils.toAmountCents(notification.amount)
         val signingText =
-            "${notification.type.value}|$amountCents|$timestamp|$nonce|${notification.eventId}"
+            "${config.terminalCode}|${notification.type.value}|$amountCents|$timestamp|$nonce|${notification.eventId}"
         val sign = CryptoUtils.generateHmacSha256(signingText, config.monitorKey)
 
         return paymentRepository.pushPayment(
             PaymentPushPayload(
+                terminalCode = config.terminalCode,
                 type = notification.type.value,
                 amountCents = amountCents,
                 timestamp = timestamp,
