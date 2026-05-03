@@ -5,6 +5,7 @@ import android.content.Context
 object KeepAliveSettingsStore {
     private const val PREFS_NAME = "keep_alive_settings"
     private const val KEY_MEDIA_ENABLED = "media_enabled"
+    private const val KEY_RECENTS_HIDDEN_ENABLED = "recents_hidden_enabled"
     private const val KEY_OVERLAY_ENABLED = "overlay_enabled"
 
     fun isMediaEnabled(context: Context): Boolean {
@@ -13,6 +14,14 @@ object KeepAliveSettingsStore {
 
     fun setMediaEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_MEDIA_ENABLED, enabled).apply()
+    }
+
+    fun isRecentsHiddenEnabled(context: Context): Boolean {
+        return prefs(context).getBoolean(KEY_RECENTS_HIDDEN_ENABLED, false)
+    }
+
+    fun setRecentsHiddenEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_RECENTS_HIDDEN_ENABLED, enabled).apply()
     }
 
     fun isOverlayEnabled(context: Context): Boolean {

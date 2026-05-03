@@ -10,12 +10,14 @@ data class KeepAliveControlItemUiModel(
 
 data class KeepAliveControlUiModel(
     val media: KeepAliveControlItemUiModel,
+    val recentsHidden: KeepAliveControlItemUiModel,
     val overlay: KeepAliveControlItemUiModel
 ) {
     companion object {
         fun from(
             mediaPreferenceEnabled: Boolean,
             mediaServiceRunning: Boolean,
+            recentsHiddenPreferenceEnabled: Boolean,
             overlayPermissionGranted: Boolean,
             overlayPreferenceEnabled: Boolean,
             overlayServiceRunning: Boolean
@@ -26,6 +28,12 @@ data class KeepAliveControlUiModel(
                     isActive = mediaPreferenceEnabled && mediaServiceRunning,
                     canToggle = true,
                     statusText = serviceStatusText(mediaPreferenceEnabled, mediaServiceRunning)
+                ),
+                recentsHidden = KeepAliveControlItemUiModel(
+                    isChecked = recentsHiddenPreferenceEnabled,
+                    isActive = recentsHiddenPreferenceEnabled,
+                    canToggle = true,
+                    statusText = if (recentsHiddenPreferenceEnabled) "已隐藏" else "已显示"
                 ),
                 overlay = KeepAliveControlItemUiModel(
                     isChecked = overlayPreferenceEnabled && overlayPermissionGranted,

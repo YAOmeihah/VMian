@@ -1,5 +1,7 @@
 package com.java.vmian.util
 
+import android.app.Activity
+import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -24,6 +26,7 @@ object KeepAliveController {
         return KeepAliveControlUiModel.from(
             mediaPreferenceEnabled = KeepAliveSettingsStore.isMediaEnabled(context),
             mediaServiceRunning = KeepAliveMediaService.isServiceRunning(),
+            recentsHiddenPreferenceEnabled = KeepAliveSettingsStore.isRecentsHiddenEnabled(context),
             overlayPermissionGranted = canDrawOverlays(context),
             overlayPreferenceEnabled = KeepAliveSettingsStore.isOverlayEnabled(context),
             overlayServiceRunning = KeepAliveOverlayService.isServiceRunning()
@@ -55,6 +58,12 @@ object KeepAliveController {
         return currentUiModel(context)
     }
 
+    fun setRecentsHiddenEnabled(activity: Activity, enabled: Boolean): KeepAliveControlUiModel {
+        KeepAliveSettingsStore.setRecentsHiddenEnabled(activity, enabled)
+        applyRecentsHiddenSetting(activity)
+        return currentUiModel(activity)
+    }
+
     fun openOverlayPermissionSettings(context: Context) {
         val intent = Intent(
             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -68,5 +77,14 @@ object KeepAliveController {
 
     fun canDrawOverlays(context: Context): Boolean {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(context)
+    }
+
+    fun applyRecentsHiddenSetting(activity: Activity) {
+        val enabled = KeepAliveSettingsStore.isRecentsHiddenEnabled(activity)
+        val activityManager = activity.getSystemService(ActivityManager::class.java) ?: return
+        val appTask = activityManager.appTasks.firstOrNull { task ->
+            task.taskInfo?.taskId == activity.taskId
+        } ?: return
+        appTask.setExcludeFromRecents(enabled)
     }
 }

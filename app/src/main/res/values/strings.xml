@@ -109,6 +109,8 @@
     <string name="keepalive_controls_description">这些开关仅在本机生效，可随时关闭。</string>
     <string name="keepalive_media_switch">后台静音媒体播放</string>
     <string name="keepalive_media_description">使用 MediaPlayer 循环播放无声音频。</string>
+    <string name="keepalive_recents_switch">从最近任务隐藏</string>
+    <string name="keepalive_recents_description">请先在最近任务中锁定本应用，再开启隐藏，能极大减少误操作清掉后台的概率。</string>
     <string name="keepalive_overlay_permission">悬浮窗权限</string>
     <string name="keepalive_overlay_switch">心跳悬浮窗</string>
     <string name="keepalive_overlay_description">授予悬浮窗权限后显示一个可见的小标签，用于查看 VMian 心跳状态。</string>
@@ -118,6 +120,9 @@
     <string name="keepalive_permission_prefix">权限：%1$s</string>
     <string name="keepalive_media_enabled_feedback">媒体保活已开启，正在检测服务状态</string>
     <string name="keepalive_media_disabled_feedback">媒体保活已关闭</string>
+    <string name="keepalive_recents_enabled_feedback">已从最近任务隐藏，请先确认你已经在最近任务中锁定本应用</string>
+    <string name="keepalive_recents_disabled_feedback">最近任务隐藏已关闭</string>
+    <string name="keepalive_recents_toggle_unavailable_feedback">当前页面无法直接应用最近任务隐藏设置</string>
     <string name="keepalive_overlay_permission_feedback">请在系统页面授予悬浮窗权限，返回后会自动检测</string>
     <string name="keepalive_overlay_enabled_feedback">心跳悬浮窗已开启，正在检测服务状态</string>
     <string name="keepalive_overlay_disabled_feedback">心跳悬浮窗已关闭</string>

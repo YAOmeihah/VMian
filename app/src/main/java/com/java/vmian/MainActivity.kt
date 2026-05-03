@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.java.vmian.presentation.ui.MainScreen
 import com.java.vmian.presentation.ui.PermissionScreen
 import com.java.vmian.ui.theme.VMianTheme
+import com.java.vmian.util.KeepAliveController
 
 /**
  * 主活动
@@ -24,6 +25,7 @@ import com.java.vmian.ui.theme.VMianTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        KeepAliveController.applyRecentsHiddenSetting(this)
         enableEdgeToEdge()
         setContent {
             VMianTheme {

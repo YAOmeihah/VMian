@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import android.app.Activity
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -331,6 +332,26 @@ fun PermissionScreen(
                                                     R.string.keepalive_overlay_enabled_feedback
                                                 } else {
                                                     R.string.keepalive_overlay_disabled_feedback
+                                                }
+                                            )
+                                        }
+                                    },
+                                    onRecentsHiddenChanged = { enabled ->
+                                        val activity = context as? Activity
+                                        if (activity == null) {
+                                            transientMessage = context.getString(
+                                                R.string.keepalive_recents_toggle_unavailable_feedback
+                                            )
+                                        } else {
+                                            keepAliveModel = KeepAliveController.setRecentsHiddenEnabled(
+                                                activity = activity,
+                                                enabled = enabled
+                                            )
+                                            transientMessage = context.getString(
+                                                if (enabled) {
+                                                    R.string.keepalive_recents_enabled_feedback
+                                                } else {
+                                                    R.string.keepalive_recents_disabled_feedback
                                                 }
                                             )
                                         }
@@ -806,6 +827,7 @@ private fun KeepAliveControlsCard(
     onMediaChanged: (Boolean) -> Unit,
     onOpenOverlayPermission: () -> Unit,
     onOverlayChanged: (Boolean) -> Unit,
+    onRecentsHiddenChanged: (Boolean) -> Unit,
     onRefresh: () -> Unit
 ) {
     Card(
@@ -852,6 +874,17 @@ private fun KeepAliveControlsCard(
                 enabled = model.media.canToggle,
                 statusText = model.media.statusText,
                 onCheckedChange = onMediaChanged
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            KeepAliveSwitchRow(
+                title = stringResource(R.string.keepalive_recents_switch),
+                description = stringResource(R.string.keepalive_recents_description),
+                checked = model.recentsHidden.isChecked,
+                enabled = model.recentsHidden.canToggle,
+                statusText = model.recentsHidden.statusText,
+                onCheckedChange = onRecentsHiddenChanged
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))

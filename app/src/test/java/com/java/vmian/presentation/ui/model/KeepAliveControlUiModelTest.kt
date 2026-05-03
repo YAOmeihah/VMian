@@ -12,6 +12,7 @@ class KeepAliveControlUiModelTest {
         val model = KeepAliveControlUiModel.from(
             mediaPreferenceEnabled = true,
             mediaServiceRunning = false,
+            recentsHiddenPreferenceEnabled = false,
             overlayPermissionGranted = true,
             overlayPreferenceEnabled = false,
             overlayServiceRunning = false
@@ -26,6 +27,7 @@ class KeepAliveControlUiModelTest {
         val model = KeepAliveControlUiModel.from(
             mediaPreferenceEnabled = false,
             mediaServiceRunning = false,
+            recentsHiddenPreferenceEnabled = false,
             overlayPermissionGranted = false,
             overlayPreferenceEnabled = true,
             overlayServiceRunning = false
@@ -41,6 +43,7 @@ class KeepAliveControlUiModelTest {
         val model = KeepAliveControlUiModel.from(
             mediaPreferenceEnabled = false,
             mediaServiceRunning = false,
+            recentsHiddenPreferenceEnabled = false,
             overlayPermissionGranted = true,
             overlayPreferenceEnabled = true,
             overlayServiceRunning = true
@@ -49,5 +52,22 @@ class KeepAliveControlUiModelTest {
         assertTrue(model.overlay.isActive)
         assertEquals("运行中", model.overlay.statusText)
         assertEquals("已授权", model.overlay.permissionText)
+    }
+
+    @Test
+    fun from_reportsRecentsHiddenStateFromPreference() {
+        val model = KeepAliveControlUiModel.from(
+            mediaPreferenceEnabled = false,
+            mediaServiceRunning = false,
+            recentsHiddenPreferenceEnabled = true,
+            overlayPermissionGranted = true,
+            overlayPreferenceEnabled = false,
+            overlayServiceRunning = false
+        )
+
+        assertTrue(model.recentsHidden.isChecked)
+        assertTrue(model.recentsHidden.isActive)
+        assertTrue(model.recentsHidden.canToggle)
+        assertEquals("已隐藏", model.recentsHidden.statusText)
     }
 }
