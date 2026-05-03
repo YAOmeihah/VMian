@@ -59,7 +59,7 @@ class AppContainer(private val context: Context) {
 
     private val gitHubRetrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl("https://api.github.com/")
+            .baseUrl("https://github.com/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -93,8 +93,7 @@ class AppContainer(private val context: Context) {
     val appUpdateRepository: AppUpdateRepository by lazy {
         AppUpdateRepositoryImpl(
             apiService = gitHubReleaseApiService,
-            owner = BuildConfig.GITHUB_REPO_OWNER,
-            repo = BuildConfig.GITHUB_REPO_NAME
+            manifestUrl = BuildConfig.UPDATE_MANIFEST_URL
         )
     }
     

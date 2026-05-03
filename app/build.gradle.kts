@@ -49,11 +49,14 @@ android {
         applicationId = "com.java.vmian"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.1.3"
+        versionCode = 6
+        versionName = "1.1.4"
 
-        buildConfigField("String", "GITHUB_REPO_OWNER", "\"YAOmeihah\"")
-        buildConfigField("String", "GITHUB_REPO_NAME", "\"VMian\"")
+        buildConfigField(
+            "String",
+            "UPDATE_MANIFEST_URL",
+            "\"https://github.com/YAOmeihah/VMian/releases/latest/download/update.json\""
+        )
         buildConfigField("long", "UPDATE_CHECK_COOLDOWN_MS", "43200000L")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
