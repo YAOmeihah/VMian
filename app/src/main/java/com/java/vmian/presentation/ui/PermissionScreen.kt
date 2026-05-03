@@ -36,6 +36,8 @@ import com.java.vmian.presentation.ui.components.PermissionGuideDialog
 import com.java.vmian.presentation.ui.components.PermissionItemCard
 import com.java.vmian.presentation.ui.components.PermissionSummaryHero
 import com.java.vmian.presentation.ui.components.AppCardDefaults
+import com.java.vmian.presentation.ui.model.KeepAliveControlUiModel
+import com.java.vmian.util.KeepAliveController
 import com.java.vmian.util.PermissionUtils
 
 /**
@@ -54,6 +56,8 @@ fun PermissionScreen(
     var showGuideDialog by remember { mutableStateOf(false) }
     var selectedPermission by remember { mutableStateOf<PermissionInfo?>(null) }
     var transientMessage by remember { mutableStateOf<String?>(null) }
+    var keepAliveModel by remember { mutableStateOf(KeepAliveController.currentUiModel(context)) }
+    var waitingForOverlayPermission by remember { mutableStateOf(false) }
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(topAppBarState)
 
@@ -71,6 +75,9 @@ fun PermissionScreen(
     // 刷新权限状态的函数
     val refreshPermissions = {
         permissionStatus = PermissionUtils.getAllPermissionStatus(context)
+    }
+    val refreshKeepAliveStatus = {
+        keepAliveModel = KeepAliveController.currentUiModel(context)
     }
     val handlePermissionClick: (PermissionInfo) -> Unit = { permission ->
         if (permission.settingsAction?.startsWith("manufacturer_") == true) {
@@ -99,6 +106,15 @@ fun PermissionScreen(
             if (event == Lifecycle.Event.ON_RESUME) {
                 // 页面恢复时刷新权限状态，这样用户从系统设置返回时能看到最新状态
                 refreshPermissions()
+                refreshKeepAliveStatus()
+                if (waitingForOverlayPermission) {
+                    waitingForOverlayPermission = false
+                    transientMessage = if (KeepAliveController.canDrawOverlays(context)) {
+                        context.getString(R.string.keepalive_permission_prefix, "已授权")
+                    } else {
+                        context.getString(R.string.keepalive_overlay_missing_permission_feedback)
+                    }
+                }
                 // 清除无障碍权限缓存，确保获取最新状态
                 PermissionUtils.clearAccessibilityServiceCache()
             }
@@ -146,6 +162,7 @@ fun PermissionScreen(
                 Lifecycle.Event.ON_RESUME -> {
                     // 页面重新获得焦点时刷新权限状态
                     refreshPermissions()
+                    refreshKeepAliveStatus()
                 }
                 else -> {}
             }
@@ -277,6 +294,50 @@ fun PermissionScreen(
                                         PermissionUtils.clearAccessibilityServiceCache()
                                         accessibilityServiceChecked = false
                                         refreshAccessibilityService = !refreshAccessibilityService
+                                    }
+                                )
+                            }
+
+                            item {
+                                KeepAliveControlsCard(
+                                    model = keepAliveModel,
+                                    onMediaChanged = { enabled ->
+                                        keepAliveModel = KeepAliveController.setMediaEnabled(context, enabled)
+                                        transientMessage = context.getString(
+                                            if (enabled) {
+                                                R.string.keepalive_media_enabled_feedback
+                                            } else {
+                                                R.string.keepalive_media_disabled_feedback
+                                            }
+                                        )
+                                    },
+                                    onOpenOverlayPermission = {
+                                        waitingForOverlayPermission = true
+                                        transientMessage = context.getString(
+                                            R.string.keepalive_overlay_permission_feedback
+                                        )
+                                        KeepAliveController.openOverlayPermissionSettings(context)
+                                    },
+                                    onOverlayChanged = { enabled ->
+                                        if (enabled && !KeepAliveController.canDrawOverlays(context)) {
+                                            transientMessage = context.getString(
+                                                R.string.keepalive_overlay_missing_permission_feedback
+                                            )
+                                            keepAliveModel = KeepAliveController.currentUiModel(context)
+                                        } else {
+                                            keepAliveModel = KeepAliveController.setOverlayEnabled(context, enabled)
+                                            transientMessage = context.getString(
+                                                if (enabled) {
+                                                    R.string.keepalive_overlay_enabled_feedback
+                                                } else {
+                                                    R.string.keepalive_overlay_disabled_feedback
+                                                }
+                                            )
+                                        }
+                                    },
+                                    onRefresh = {
+                                        refreshKeepAliveStatus()
+                                        transientMessage = context.getString(R.string.keepalive_status_refreshed)
                                     }
                                 )
                             }
@@ -736,6 +797,168 @@ private fun AccessibilityPermissionCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun KeepAliveControlsCard(
+    model: KeepAliveControlUiModel,
+    onMediaChanged: (Boolean) -> Unit,
+    onOpenOverlayPermission: () -> Unit,
+    onOverlayChanged: (Boolean) -> Unit,
+    onRefresh: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = AppCardDefaults.infoColors(),
+        shape = MaterialTheme.shapes.medium,
+        elevation = AppCardDefaults.sectionElevation()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.keepalive_controls_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.keepalive_controls_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                TextButton(onClick = onRefresh) {
+                    Text(stringResource(R.string.keepalive_refresh_status))
+                }
+            }
+
+            KeepAliveSwitchRow(
+                title = stringResource(R.string.keepalive_media_switch),
+                description = stringResource(R.string.keepalive_media_description),
+                checked = model.media.isChecked,
+                enabled = model.media.canToggle,
+                statusText = model.media.statusText,
+                onCheckedChange = onMediaChanged
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            KeepAliveOverlayPermissionRow(
+                permissionText = model.overlay.permissionText.orEmpty(),
+                onOpenOverlayPermission = onOpenOverlayPermission
+            )
+
+            KeepAliveSwitchRow(
+                title = stringResource(R.string.keepalive_overlay_switch),
+                description = stringResource(R.string.keepalive_overlay_description),
+                checked = model.overlay.isChecked,
+                enabled = model.overlay.canToggle,
+                statusText = model.overlay.statusText,
+                onCheckedChange = onOverlayChanged
+            )
+        }
+    }
+}
+
+@Composable
+private fun KeepAliveOverlayPermissionRow(
+    permissionText: String,
+    onOpenOverlayPermission: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.keepalive_overlay_permission),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(R.string.keepalive_permission_prefix, permissionText),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        OutlinedButton(
+            onClick = onOpenOverlayPermission,
+            modifier = Modifier.heightIn(min = 36.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.keepalive_open_overlay_permission),
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun KeepAliveSwitchRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    enabled: Boolean,
+    statusText: String,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            )
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2
+            )
+            Text(
+                text = stringResource(R.string.keepalive_status_prefix, statusText),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (checked) SuccessGreen else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
     }
 }
 

@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.java.vmian.util.HeartbeatScheduler
+import com.java.vmian.util.KeepAliveController
 import com.java.vmian.util.LogManager
 import com.java.vmian.util.PermissionUtils
 
@@ -25,6 +26,10 @@ class BootReceiver : BroadcastReceiver() {
             Intent.ACTION_PACKAGE_REPLACED -> {
                 Log.d(TAG, "收到系统启动/应用更新广播: ${intent.action}")
                 LogManager.logSystem("BootReceiver: 收到广播 ${intent.action}")
+
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    restoreKeepAliveComponents(context)
+                }, 10_000)
                 
                 // 检查通知监听权限是否已开启
                 if (PermissionUtils.isNotificationListenerEnabled(context)) {
@@ -51,6 +56,17 @@ class BootReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             Log.e(TAG, "开机启动心跳调度失败", e)
             LogManager.logError("开机启动心跳调度失败: ${e.message}")
+        }
+    }
+
+    private fun restoreKeepAliveComponents(context: Context) {
+        try {
+            KeepAliveController.applyStoredSettings(context, allowMediaPlayback = false)
+            Log.d(TAG, "开机恢复保活组件完成")
+            LogManager.logSystem("开机恢复保活组件完成")
+        } catch (e: Exception) {
+            Log.e(TAG, "开机恢复保活组件失败", e)
+            LogManager.logError("开机恢复保活组件失败: ${e.message}")
         }
     }
 }

@@ -7,6 +7,7 @@ import android.util.Log
 import com.java.vmian.VmqApplication
 import com.java.vmian.domain.model.ApiResponse
 import com.java.vmian.util.HeartbeatScheduler
+import com.java.vmian.util.KeepAliveRuntimeStatusStore
 import com.java.vmian.util.LogManager
 import com.java.vmian.util.WakeLockManager
 import kotlinx.coroutines.CoroutineScope
@@ -64,6 +65,7 @@ class HeartbeatAlarmReceiver : BroadcastReceiver() {
                 when (result) {
                     is ApiResponse.Success -> {
                         isSuccess = true
+                        KeepAliveRuntimeStatusStore.recordHeartbeat(context)
                         Log.d(TAG, "心跳成功: ${result.data}")
                         LogManager.logHeartbeat("心跳成功: ${result.data}")
                         
