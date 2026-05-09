@@ -17,6 +17,7 @@ local.properties
 .codex
 /superpowers
 .superpowers
+.spec-workflow
 
 # Android build and release artifacts
 app/build/
