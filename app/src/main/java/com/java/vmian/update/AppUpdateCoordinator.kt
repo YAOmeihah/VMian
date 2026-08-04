@@ -1,7 +1,6 @@
 package com.java.vmian.update
 
 import android.content.Context
-import androidx.core.app.NotificationManagerCompat
 import com.java.vmian.domain.model.AppUpdateInfo
 import com.java.vmian.domain.model.AppUpdateState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,8 +73,8 @@ object AppUpdateCoordinator {
         installIntent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(installIntent) }
             .onFailure {
-                NotificationManagerCompat.from(context).notify(
-                    AppUpdateNotificationFactory.NOTIFICATION_ID,
+                AppUpdateNotificationFactory.notifyIfEnabled(
+                    context,
                     AppUpdateNotificationFactory.buildCompletionNotification(context, info, file.absolutePath)
                 )
             }

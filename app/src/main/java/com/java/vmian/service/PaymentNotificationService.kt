@@ -17,6 +17,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 import com.java.vmian.MainActivity
 import com.java.vmian.R
@@ -298,13 +299,12 @@ class PaymentNotificationService : NotificationListenerService() {
      */
     private fun registerNotificationUpdateReceiver() {
         val filter = IntentFilter("com.java.vmian.UPDATE_NOTIFICATION")
-
-        // Android 13+ 需要明确指定接收器导出标志
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(notificationUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(notificationUpdateReceiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            this,
+            notificationUpdateReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         Log.d(TAG, "通知更新广播接收器已注册")
     }

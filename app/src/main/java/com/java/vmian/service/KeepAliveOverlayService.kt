@@ -159,11 +159,12 @@ class KeepAliveOverlayService : Service() {
     private fun registerHeartbeatStatusReceiver() {
         val filter = IntentFilter(KeepAliveRuntimeStatusStore.ACTION_HEARTBEAT_STATUS_CHANGED)
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(heartbeatStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                registerReceiver(heartbeatStatusReceiver, filter)
-            }
+            ContextCompat.registerReceiver(
+                this,
+                heartbeatStatusReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
         } catch (e: Exception) {
             Log.e(TAG, "注册心跳状态广播失败", e)
         }

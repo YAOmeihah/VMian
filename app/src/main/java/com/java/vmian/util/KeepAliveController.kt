@@ -83,8 +83,21 @@ object KeepAliveController {
         val enabled = KeepAliveSettingsStore.isRecentsHiddenEnabled(activity)
         val activityManager = activity.getSystemService(ActivityManager::class.java) ?: return
         val appTask = activityManager.appTasks.firstOrNull { task ->
-            task.taskInfo?.taskId == activity.taskId
+            val baseActivity = task.taskInfo?.baseIntent?.component
+            matchesTaskBaseActivity(
+                taskPackageName = baseActivity?.packageName,
+                taskClassName = baseActivity?.className,
+                currentPackageName = activity.packageName,
+                currentClassName = activity.componentName.className
+            )
         } ?: return
         appTask.setExcludeFromRecents(enabled)
     }
+
+    internal fun matchesTaskBaseActivity(
+        taskPackageName: String?,
+        taskClassName: String?,
+        currentPackageName: String,
+        currentClassName: String
+    ): Boolean = taskPackageName == currentPackageName && taskClassName == currentClassName
 }

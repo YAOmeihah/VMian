@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.PendingIntentCompat
 import com.java.vmian.MainActivity
 import com.java.vmian.R
@@ -27,6 +28,13 @@ object AppUpdateNotificationFactory {
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
+        }
+    }
+
+    fun notifyIfEnabled(context: Context, notification: Notification) {
+        val notificationManager = NotificationManagerCompat.from(context)
+        if (notificationManager.areNotificationsEnabled()) {
+            notificationManager.notify(NOTIFICATION_ID, notification)
         }
     }
 

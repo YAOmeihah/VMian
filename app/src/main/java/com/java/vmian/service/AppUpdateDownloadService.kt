@@ -98,8 +98,8 @@ class AppUpdateDownloadService : Service() {
                 tempFile?.let(AppUpdateFileStore::deleteQuietly)
                 if (!cancellationRequested && !throwable.isCancellationSignal()) {
                     AppUpdateCoordinator.onDownloadFailed(throwable.message ?: "下载失败")
-                    NotificationManagerCompat.from(this@AppUpdateDownloadService).notify(
-                        AppUpdateNotificationFactory.NOTIFICATION_ID,
+                    AppUpdateNotificationFactory.notifyIfEnabled(
+                        this@AppUpdateDownloadService,
                         AppUpdateNotificationFactory.buildFailureNotification(
                             this@AppUpdateDownloadService,
                             throwable.message ?: "下载失败"
@@ -144,8 +144,8 @@ class AppUpdateDownloadService : Service() {
                         val progress = if (totalBytes > 0) ((downloaded * 100) / totalBytes).toInt() else 0
                         AppUpdateCoordinator.onDownloadProgress(updateInfo, destination, downloaded, totalBytes)
                         if (progress != lastNotifiedProgress) {
-                            NotificationManagerCompat.from(this).notify(
-                                AppUpdateNotificationFactory.NOTIFICATION_ID,
+                            AppUpdateNotificationFactory.notifyIfEnabled(
+                                this,
                                 AppUpdateNotificationFactory.buildProgressNotification(
                                     this,
                                     progress,
